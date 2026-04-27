@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#111111">
+    <title>Creative Notebook</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap">
+    <style>
+        :root {
+            --color-black:        #111111;
+            --color-charcoal:     #1a1a1a;
+            --color-cream:        #d4c4b5;
+            --color-white:        #e8e0d8;
+            --color-border:       #2a2a2a;
+            --color-border-light: #1f1f1f;
+            --color-text-1:       #bbbbbb;
+            --color-text-2:       #999999;
+            --color-text-3:       #888888;
+            --color-text-4:       #666666;
+            --color-highlight-bg: #1a1816;
+            --color-highlight-border: #2a2520;
+            --font-serif: 'Cormorant Garamond', Georgia, serif;
+            --font-sans:  'Inter', 'Helvetica Neue', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: var(--color-black);
+            color: var(--color-white);
+            font-family: var(--font-sans);
+            font-weight: 300;
+            line-height: 1.6;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        button, input, textarea {
+            font-family: inherit;
+            color: inherit;
+        }
+
+        a { color: var(--color-cream); text-decoration: none; }
+
+        /* ================ SCREENS ================ */
+        .screen {
+            position: fixed;
+            inset: 0;
+            display: none;
+            flex-direction: column;
+            padding: 48px 32px;
+        }
+        .screen.active { display: flex; }
+
+        /* ================ LOGO / WORDMARK ================ */
+        .logo {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 400;
+            letter-spacing: 3px;
+            color: var(--color-cream);
+            text-transform: uppercase;
+        }
+
+        .meta {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: var(--color-text-4);
+            text-transform: uppercase;
+        }
+
+        .label {
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            color: var(--color-text-4);
+            text-transform: uppercase;
+        }
+        .label-cream {
+            color: var(--color-cream);
+        }
+
+        /* ================ LOGIN SCREEN ================ */
+        #loginScreen {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        #loginScreen .logo { margin-bottom: 64px; }
+
+        #loginScreen h1 {
+            font-family: var(--font-serif);
+            font-size: 56px;
+            font-weight: 400;
+            line-height: 1.1;
+            letter-spacing: 1px;
+            color: var(--color-cream);
+            margin-bottom: 16px;
+        }
+
+        #loginScreen .tagline {
+            font-family: var(--font-serif);
+            font-style: italic;
+            font-size: 22px;
+            color: var(--color-text-2);
+            margin-bottom: 64px;
+            line-height: 1.4;
+        }
+
+        .pat-form {
+            width: 100%;
+            max-width: 480px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .pat-input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-white);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 300;
+            padding: 16px 20px;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+        .pat-input::placeholder {
+            color: var(--color-text-4);
+            letter-spacing: 1px;
+        }
+        .pat-input:focus { border-color: var(--color-cream); }
+
+        .btn {
+            background: transparent;
+            border: 1px solid var(--color-cream);
+            color: var(--color-cream);
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 16px 32px;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .btn:hover { background: var(--color-cream); color: var(--color-black); }
+        .btn:disabled { opacity: 0.5; cursor: wait; }
+
+        .btn-quiet {
+            border-color: var(--color-border);
+            color: var(--color-text-3);
+        }
+        .btn-quiet:hover { background: transparent; color: var(--color-cream); border-color: var(--color-cream); }
+
+        .pat-status {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 300;
+            color: var(--color-text-3);
+            min-height: 18px;
+            letter-spacing: 1px;
+            margin-top: 8px;
+        }
+        .pat-status.error { color: #c44; }
+
+        .pat-hint {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            color: var(--color-text-4);
+            margin-top: 32px;
+            line-height: 1.6;
+            max-width: 480px;
+        }
+        .pat-hint a { border-bottom: 1px solid var(--color-border); }
+        .pat-hint a:hover { border-color: var(--color-cream); }
+
+        /* ================ HOME SCREEN ================ */
+        #homeScreen {
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .home-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        .home-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            gap: 32px;
+            text-align: center;
+        }
+
+        .play-btn {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: transparent;
+            border: 1px solid var(--color-cream);
+            color: var(--color-cream);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease, transform 0.15s ease;
+            padding: 0;
+        }
+        .play-btn:hover { background: var(--color-cream); color: var(--color-black); }
+        .play-btn:active { transform: scale(0.98); }
+        .play-btn svg {
+            width: 48px;
+            height: 48px;
+            display: block;
+            margin-left: 6px; /* optical centering of play triangle */
+        }
+
+        .home-bottom {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+        }
+        .home-bottom .count {
+            font-family: var(--font-serif);
+            font-size: 28px;
+            font-weight: 400;
+            color: var(--color-cream);
+        }
+        .home-bottom .count-label {
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            color: var(--color-text-4);
+            text-transform: uppercase;
+        }
+
+        /* ================ ENTRY SCREEN ================ */
+        #entryScreen {
+            justify-content: flex-start;
+        }
+
+        .entry-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .entry-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            flex: 1;
+            min-height: 0;
+        }
+        .entry-section h2 {
+            font-family: var(--font-serif);
+            font-size: 36px;
+            font-weight: 400;
+            color: var(--color-cream);
+            line-height: 1.2;
+        }
+
+        .entry-textarea {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-white);
+            font-family: var(--font-sans);
+            font-size: 18px;
+            font-weight: 300;
+            line-height: 1.6;
+            padding: 24px;
+            outline: none;
+            resize: none;
+            min-height: 200px;
+            transition: border-color 0.2s ease;
+        }
+        .entry-textarea::placeholder {
+            color: var(--color-text-4);
+            font-style: italic;
+        }
+        .entry-textarea:focus { border-color: var(--color-cream); }
+
+        .entry-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .mic-btn {
+            background: transparent;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-1);
+            width: 56px;
+            height: 56px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+            padding: 0;
+        }
+        .mic-btn:hover {
+            border-color: var(--color-cream);
+            color: var(--color-cream);
+        }
+        .mic-btn svg { width: 22px; height: 22px; }
+        .mic-btn.recording {
+            background: var(--color-cream);
+            color: var(--color-black);
+            border-color: var(--color-cream);
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.65; }
+        }
+        .mic-btn:disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
+        .mic-status {
+            font-family: var(--font-sans);
+            font-size: 11px;
+            letter-spacing: 2px;
+            color: var(--color-text-4);
+            text-transform: uppercase;
+            margin-left: 4px;
+            flex: 1;
+        }
+        .mic-status.live { color: var(--color-cream); }
+
+        .entry-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* ================ TOAST ================ */
+        .toast {
+            position: fixed;
+            top: 32px;
+            left: 50%;
+            transform: translate(-50%, -120%);
+            background: var(--color-highlight-bg);
+            border: 1px solid var(--color-highlight-border);
+            color: var(--color-cream);
+            font-family: var(--font-sans);
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding: 14px 28px;
+            transition: transform 0.35s ease;
+            z-index: 100;
+            white-space: nowrap;
+        }
+        .toast.show { transform: translate(-50%, 0); }
+        .toast.error { color: #c44; }
+
+        /* ================ RESET LINK ================ */
+        .reset-link {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: var(--color-text-4);
+            text-transform: uppercase;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease, color 0.2s ease;
+            z-index: 50;
+        }
+        .reset-link.visible { opacity: 1; }
+        .reset-link:hover { color: var(--color-cream); }
+
+        /* ================ MOBILE ================ */
+        @media (max-width: 600px) {
+            .screen { padding: 32px 20px; }
+            #loginScreen h1 { font-size: 40px; }
+            #loginScreen .tagline { font-size: 18px; margin-bottom: 48px; }
+            .play-btn { width: 140px; height: 140px; }
+            .play-btn svg { width: 38px; height: 38px; margin-left: 4px; }
+            .entry-section h2 { font-size: 28px; }
+            .entry-textarea { font-size: 16px; padding: 18px; }
+            .entry-actions { width: 100%; }
+            .entry-actions .btn { flex: 1; padding: 16px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================
+         LOGIN SCREEN
+         ============================================ -->
+    <div id="loginScreen" class="screen active">
+        <div class="logo">FORMA ROSA CREATIVE</div>
+        <h1>Creative Notebook</h1>
+        <div class="tagline">A place for the day's tasks and tomorrow's ideas.</div>
+
+        <div class="pat-form">
+            <input id="patInput" class="pat-input" type="password" autocomplete="off"
+                   placeholder="paste github personal access token">
+            <button id="connectBtn" class="btn">Connect</button>
+            <div id="patStatus" class="pat-status"></div>
+        </div>
+
+        <div class="pat-hint">
+            Fine-grained PAT, scoped to <code>creative-notebook-data</code> only,
+            with Contents: Read and write.
+            <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Generate one.</a>
+        </div>
+    </div>
+
+    <!-- ============================================
+         HOME SCREEN
+         ============================================ -->
+    <div id="homeScreen" class="screen">
+        <div class="home-top">
+            <div class="logo">FORMA ROSA CREATIVE</div>
+            <div class="meta" id="todayMeta"></div>
+        </div>
+
+        <div class="home-center">
+            <div class="label">Create a new entry</div>
+            <button class="play-btn" id="playBtn" aria-label="Create a new entry">
+                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 5 L19 12 L8 19 Z" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="home-bottom">
+            <div class="count" id="entryCount">0</div>
+            <div class="count-label">Entries</div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         ENTRY SCREEN
+         ============================================ -->
+    <div id="entryScreen" class="screen">
+        <div class="entry-top">
+            <div class="logo">FORMA ROSA CREATIVE</div>
+            <div class="meta" id="entryMeta"></div>
+        </div>
+
+        <div class="entry-section">
+            <div class="label">New entry</div>
+            <h2 id="entryPrompt">What's on your mind?</h2>
+            <textarea id="entryText" class="entry-textarea" autofocus
+                      placeholder="type here, or tap the microphone to dictate..."></textarea>
+        </div>
+
+        <div class="entry-controls">
+            <button id="micBtn" class="mic-btn" aria-label="Toggle microphone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="9" y="3" width="6" height="12" rx="3"/>
+                    <path d="M5 11a7 7 0 0 0 14 0"/>
+                    <line x1="12" y1="18" x2="12" y2="22"/>
+                    <line x1="8" y1="22" x2="16" y2="22"/>
+                </svg>
+            </button>
+            <div id="micStatus" class="mic-status"></div>
+            <div class="entry-actions">
+                <button id="cancelBtn" class="btn btn-quiet">Cancel</button>
+                <button id="saveBtn" class="btn">Save Entry</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast & reset link -->
+    <div id="toast" class="toast"></div>
+    <div id="resetLink" class="reset-link">reset connection</div>
+
+    <script>
+    'use strict';
+
+    // ============================================
+    // CONFIG — the entire fork surface
+    // ============================================
+    const DATA_OWNER       = 'santibraby';
+    const DATA_REPO        = 'creative-notebook-data';
+    const DATA_BRANCH      = 'main';
+    const DATA_START_YEAR  = 2026;
+    const PAT_STORAGE_KEY  = 'creative_notebook_gh_pat';
+
+    const dataPath = (year)  => `data-${year}.json`;
+    const dataUrl  = (path)  => `https://api.github.com/repos/${DATA_OWNER}/${DATA_REPO}/contents/${path}`;
+
+    // ============================================
+    // STATE
+    // ============================================
+    let githubToken = null;
+    let yearData    = {};   // { 2026: [entry, ...] }
+    let yearShas    = {};   // { 2026: 'sha-string' }
+    let recognition = null;
+    let isRecording = false;
+    let usedVoiceThisEntry = false;
+
+    // ============================================
+    // UTILITIES
+    // ============================================
+    function $(id) { return document.getElementById(id); }
+
+    function b64encodeUtf8(str) {
+        return btoa(unescape(encodeURIComponent(str)));
+    }
+    function b64decodeUtf8(b64) {
+        return decodeURIComponent(escape(atob(b64.replace(/\s/g, ''))));
+    }
+
+    function uuid() {
+        if (crypto && crypto.randomUUID) return crypto.randomUUID();
+        // RFC4122 v4 fallback
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    function nowMeta() {
+        const d = new Date();
+        return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    }
+
+    function setPatStatus(msg, isError = false) {
+        const el = $('patStatus');
+        el.textContent = msg || '';
+        el.classList.toggle('error', !!isError);
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        $(id).classList.add('active');
+    }
+
+    let toastTimer = null;
+    function showToast(msg, isError = false) {
+        const t = $('toast');
+        t.textContent = msg;
+        t.classList.toggle('error', !!isError);
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+    }
+
+    function entryCount() {
+        return Object.values(yearData).reduce((sum, arr) => sum + arr.length, 0);
+    }
+
+    function refreshHome() {
+        $('entryCount').textContent = entryCount();
+        $('todayMeta').textContent  = nowMeta();
+    }
+
+    // ============================================
+    // GITHUB API
+    // ============================================
+    async function ghFetch(url, opts = {}) {
+        return fetch(url, {
+            ...opts,
+            headers: {
+                Authorization: `Bearer ${githubToken}`,
+                'Accept': 'application/vnd.github+json',
+                'X-GitHub-Api-Version': '2022-11-28',
+                ...(opts.headers || {})
+            }
+        });
+    }
+
+    // GET one year file. Returns { sha, entries } or null on 404.
+    async function loadYearFile(year) {
+        const res = await ghFetch(`${dataUrl(dataPath(year))}?ref=${DATA_BRANCH}&t=${Date.now()}`, {
+            cache: 'no-store'
+        });
+        if (res.status === 404) return null;
+        if (res.status === 401 || res.status === 403) throw new Error('AUTH');
+        if (!res.ok) throw new Error(`load ${dataPath(year)} failed: ${res.status}`);
+        const body = await res.json();
+        let parsed = [];
+        try {
+            parsed = JSON.parse(b64decodeUtf8(body.content));
+        } catch (e) {
+            console.error(`${dataPath(year)} is not valid JSON:`, e);
+        }
+        return {
+            sha: body.sha,
+            entries: Array.isArray(parsed) ? parsed : []
+        };
+    }
+
+    // PUT a year file. `sha` only present when updating an existing file.
+    async function writeYearFile(year, entries, message) {
+        const sorted  = [...entries].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        const content = b64encodeUtf8(JSON.stringify(sorted, null, 2) + '\n');
+        const sha     = yearShas[year];
+        const res = await ghFetch(dataUrl(dataPath(year)), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                message,
+                content,
+                branch: DATA_BRANCH,
+                ...(sha ? { sha } : {})
+            })
+        });
+        if (res.status === 401 || res.status === 403) throw new Error('AUTH');
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(`write ${dataPath(year)} failed: ${res.status} ${text}`);
+        }
+        const body = await res.json();
+        yearData[year] = sorted;
+        yearShas[year] = body.content && body.content.sha ? body.content.sha : null;
+        return body;
+    }
+
+    async function loadAllYears() {
+        yearData = {};
+        yearShas = {};
+        const currentYear = new Date().getUTCFullYear();
+        for (let y = DATA_START_YEAR; y <= currentYear; y++) {
+            const result = await loadYearFile(y);
+            if (result) {
+                yearData[y] = result.entries;
+                yearShas[y] = result.sha;
+            } else {
+                yearData[y] = [];
+                // no sha — file will be created on first write
+            }
+        }
+    }
+
+    async function saveEntry(entry) {
+        const year = new Date(entry.timestamp).getUTCFullYear();
+        if (!yearData[year]) yearData[year] = [];
+        const merged = [...yearData[year], entry];
+        try {
+            await writeYearFile(year, merged, `add entry ${entry.timestamp}`);
+        } catch (err) {
+            // SHA-conflict retry once
+            if (/\b(409|422)\b/.test(err.message)) {
+                const reloaded = await loadYearFile(year);
+                if (reloaded) {
+                    yearData[year] = reloaded.entries;
+                    yearShas[year] = reloaded.sha;
+                }
+                const retry = [...yearData[year], entry];
+                await writeYearFile(year, retry, `add entry ${entry.timestamp}`);
+            } else {
+                throw err;
+            }
+        }
+    }
+
+    // ============================================
+    // CONNECT FLOW
+    // ============================================
+    async function connectWithToken(token, fromStorage = false) {
+        githubToken = token;
+        try {
+            setPatStatus('connecting...');
+            await loadAllYears();
+            // Persist token only after a successful read
+            localStorage.setItem(PAT_STORAGE_KEY, token);
+            $('resetLink').classList.add('visible');
+            refreshHome();
+            showScreen('homeScreen');
+            setPatStatus('');
+            $('patInput').value = '';
+        } catch (err) {
+            githubToken = null;
+            if (err.message === 'AUTH') {
+                setPatStatus('invalid or expired token - try again', true);
+                if (fromStorage) localStorage.removeItem(PAT_STORAGE_KEY);
+            } else {
+                setPatStatus('connection failed - check network', true);
+                console.error(err);
+            }
+        }
+    }
+
+    function resetConnection() {
+        if (!confirm('Reset connection? This wipes the saved token from this device. Your data on GitHub is untouched.')) return;
+        localStorage.removeItem(PAT_STORAGE_KEY);
+        githubToken = null;
+        yearData = {};
+        yearShas = {};
+        $('resetLink').classList.remove('visible');
+        showScreen('loginScreen');
+        $('patInput').focus();
+    }
+
+    function initializeConnection() {
+        const saved = localStorage.getItem(PAT_STORAGE_KEY);
+        if (saved) {
+            connectWithToken(saved, true);
+        } else {
+            showScreen('loginScreen');
+            setTimeout(() => $('patInput').focus(), 100);
+        }
+    }
+
+    // ============================================
+    // ENTRY COMPOSER
+    // ============================================
+    function openEntry() {
+        $('entryText').value = '';
+        $('entryMeta').textContent = nowMeta();
+        $('micStatus').textContent = '';
+        $('micStatus').classList.remove('live');
+        usedVoiceThisEntry = false;
+        showScreen('entryScreen');
+        setTimeout(() => $('entryText').focus(), 80);
+    }
+
+    function cancelEntry() {
+        if (isRecording) stopRecording();
+        showScreen('homeScreen');
+    }
+
+    async function submitEntry() {
+        const text = $('entryText').value.trim();
+        if (!text) {
+            showToast('entry is empty', true);
+            $('entryText').focus();
+            return;
+        }
+        if (isRecording) stopRecording();
+
+        const entry = {
+            id: uuid(),
+            timestamp: new Date().toISOString(),
+            text,
+            source: usedVoiceThisEntry ? 'voice' : 'typed'
+        };
+
+        const saveBtn = $('saveBtn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        try {
+            await saveEntry(entry);
+            refreshHome();
+            showScreen('homeScreen');
+            showToast('entry saved');
+        } catch (err) {
+            console.error(err);
+            if (err.message === 'AUTH') {
+                showToast('auth error - reconnect', true);
+                resetConnection();
+            } else {
+                showToast('save failed - try again', true);
+                alert(`Could not save entry. Check your connection and try again.\n\n${err.message}`);
+            }
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Entry';
+        }
+    }
+
+    // ============================================
+    // SPEECH RECOGNITION
+    // ============================================
+    function initSpeechRecognition() {
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+            $('micBtn').disabled = true;
+            $('micBtn').title = 'Speech recognition not supported in this browser';
+            return;
+        }
+        recognition = new SR();
+        recognition.continuous     = true;
+        recognition.interimResults = true;
+        recognition.lang           = 'en-US';
+
+        recognition.onresult = (event) => {
+            const textInput = $('entryText');
+            if (!textInput) return;
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript + ' ';
+                }
+            }
+            if (finalTranscript) {
+                const sep = textInput.value && !/\s$/.test(textInput.value) ? ' ' : '';
+                textInput.value = (textInput.value + sep + finalTranscript).replace(/\s+/g, ' ').trimStart();
+                usedVoiceThisEntry = true;
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            stopRecording();
+            if (event.error === 'not-allowed') {
+                showToast('microphone permission denied', true);
+            }
+        };
+
+        recognition.onend = () => {
+            // If the engine stops on its own while we're still in "recording" mode, restart
+            if (isRecording) {
+                try { recognition.start(); } catch (_) { /* ignore */ }
+            }
+        };
+    }
+
+    function toggleRecording() {
+        if (!recognition) {
+            showToast('speech not supported here', true);
+            return;
+        }
+        if (isRecording) stopRecording();
+        else startRecording();
+    }
+
+    function startRecording() {
+        if (!recognition || isRecording) return;
+        try {
+            recognition.start();
+            isRecording = true;
+            $('micBtn').classList.add('recording');
+            $('micStatus').textContent = 'Listening';
+            $('micStatus').classList.add('live');
+        } catch (err) {
+            console.error('start recording failed:', err);
+        }
+    }
+
+    function stopRecording() {
+        if (!recognition || !isRecording) return;
+        isRecording = false;
+        try { recognition.stop(); } catch (_) { /* ignore */ }
+        $('micBtn').classList.remove('recording');
+        $('micStatus').textContent = '';
+        $('micStatus').classList.remove('live');
+    }
+
+    // ============================================
+    // EVENT WIRING
+    // ============================================
+    function wireEvents() {
+        $('connectBtn').addEventListener('click', () => {
+            const token = $('patInput').value.trim();
+            if (!token) {
+                setPatStatus('paste a token first', true);
+                return;
+            }
+            connectWithToken(token);
+        });
+
+        $('patInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                $('connectBtn').click();
+            }
+        });
+
+        $('playBtn').addEventListener('click', openEntry);
+        $('cancelBtn').addEventListener('click', cancelEntry);
+        $('saveBtn').addEventListener('click', submitEntry);
+        $('micBtn').addEventListener('click', toggleRecording);
+        $('resetLink').addEventListener('click', resetConnection);
+
+        // keyboard shortcuts on entry screen
+        $('entryText').addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                submitEntry();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelEntry();
+            }
+        });
+    }
+
+    // ============================================
+    // INIT
+    // ============================================
+    window.addEventListener('DOMContentLoaded', () => {
+        wireEvents();
+        initSpeechRecognition();
+        initializeConnection();
+    });
+
+    </script>
+</body>
+</html>
