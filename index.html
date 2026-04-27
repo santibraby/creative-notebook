@@ -59,6 +59,22 @@
         .screen.active { display: flex; }
 
         /* ================ LOGO / WORDMARK ================ */
+        .logo-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            line-height: 1;
+        }
+
+        .version {
+            font-family: var(--font-sans);
+            font-size: 9px;
+            font-weight: 400;
+            letter-spacing: 1.5px;
+            color: var(--color-text-4);
+            text-transform: uppercase;
+        }
+
         .logo {
             font-family: var(--font-sans);
             font-size: 14px;
@@ -505,7 +521,10 @@
          ============================================ -->
     <div id="homeScreen" class="screen">
         <div class="home-top">
-            <div class="logo">FORMA ROSA CREATIVE</div>
+            <div class="logo-stack">
+                <div class="version" data-version></div>
+                <div class="logo">FORMA ROSA CREATIVE</div>
+            </div>
             <div class="meta" id="todayMeta"></div>
         </div>
 
@@ -529,7 +548,10 @@
          ============================================ -->
     <div id="entryScreen" class="screen">
         <div class="entry-top">
-            <div class="logo">FORMA ROSA CREATIVE</div>
+            <div class="logo-stack">
+                <div class="version" data-version></div>
+                <div class="logo">FORMA ROSA CREATIVE</div>
+            </div>
             <div class="meta" id="entryMeta"></div>
         </div>
 
@@ -579,6 +601,10 @@
     // ============================================
     // CONFIG — the entire fork surface
     // ============================================
+    // App version. Bumped automatically by push.bat (via bump-version.ps1).
+    // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
+    const APP_VERSION = '1.0.2';
+
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
     const DATA_BRANCH      = 'main';
@@ -1288,6 +1314,10 @@
     // INIT
     // ============================================
     window.addEventListener('DOMContentLoaded', () => {
+        // Stamp the version label everywhere it's needed.
+        document.querySelectorAll('[data-version]').forEach(el => {
+            el.textContent = `v${APP_VERSION}`;
+        });
         wireEvents();
         initSpeechRecognition();
         initializeConnection();
