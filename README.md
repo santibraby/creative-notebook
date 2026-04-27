@@ -83,9 +83,23 @@ Both APIs need microphone permission. The browser should only prompt once per se
 
 No audio is recorded or stored — speech is transcribed live and only the resulting text is saved.
 
+## Home screen dashboard
+
+The home screen displays a synthesized review fetched from `creative-notebook-data/summary.json`. Sections are rendered in array order with bulleted items and optional italic notes. If the file is missing or empty, an empty-state message appears.
+
+The summary is regenerated manually during a chat session with Cowork (Claude desktop) - it is never auto-refreshed. The flow:
+
+1. Run `pull.bat` to sync the latest entries from GitHub into your local data folder
+2. Open Cowork and ask for a review of recent entries
+3. Cowork writes a new `summary.json` into `creative-notebook-data/`
+4. Run `push.bat` to ship the new summary to GitHub
+5. Reload the app - the new dashboard appears
+
+See `creative-notebook-data/README.md` for the full summary schema.
+
 ## What's next
 
-This is v0.1 — capture only. Display, search, edit, and delete are the next steps.
+Future ideas: search, edit, delete, export, archived view of past summaries.
 
 ## Reset
 

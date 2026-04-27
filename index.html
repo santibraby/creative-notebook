@@ -205,8 +205,8 @@
 
         /* ================ HOME SCREEN ================ */
         #homeScreen {
-            justify-content: space-between;
-            align-items: center;
+            justify-content: flex-start;
+            align-items: stretch;
         }
 
         .home-top {
@@ -214,21 +214,36 @@
             justify-content: space-between;
             align-items: flex-start;
             width: 100%;
+            gap: 24px;
+            margin-bottom: 32px;
         }
 
-        .home-center {
+        .home-top-left {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            flex: 1;
-            gap: 32px;
-            text-align: center;
+            gap: 16px;
+        }
+
+        .home-top-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+            text-align: right;
+        }
+
+        .home-top-right .meta-count {
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: var(--color-text-3);
+            text-transform: uppercase;
         }
 
         .play-btn {
-            width: 180px;
-            height: 180px;
+            width: 56px;
+            height: 56px;
             border-radius: 50%;
             background: transparent;
             border: 1px solid var(--color-cream);
@@ -239,37 +254,123 @@
             justify-content: center;
             transition: background 0.2s ease, transform 0.15s ease;
             padding: 0;
+            margin-top: 4px;
         }
         .play-btn:hover { background: var(--color-cream); color: var(--color-black); }
-        .play-btn:active { transform: scale(0.98); }
+        .play-btn:active { transform: scale(0.96); }
         .play-btn svg {
-            width: 48px;
-            height: 48px;
+            width: 18px;
+            height: 18px;
             display: block;
-            margin-left: 6px; /* optical centering of play triangle */
+            margin-left: 2px; /* optical centering of play triangle */
         }
 
-        .home-bottom {
+        /* ================ HOME SUMMARY ================ */
+        .home-summary {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            width: 100%;
+            gap: 36px;
+            padding-right: 8px;
         }
-        .home-bottom .count {
-            font-family: var(--font-serif);
-            font-size: 28px;
-            font-weight: 400;
-            color: var(--color-cream);
+        .home-summary::-webkit-scrollbar { width: 4px; }
+        .home-summary::-webkit-scrollbar-thumb { background: var(--color-border); }
+
+        .summary-section {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
-        .home-bottom .count-label {
+
+        .summary-section .summary-section-title {
             font-family: var(--font-sans);
             font-size: 10px;
             font-weight: 400;
             letter-spacing: 2px;
             color: var(--color-text-4);
             text-transform: uppercase;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--color-border-light);
         }
+
+        .summary-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            padding: 0;
+            margin: 0;
+        }
+
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding-left: 16px;
+            position: relative;
+        }
+        .summary-item::before {
+            content: '-';
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--color-text-3);
+        }
+
+        .summary-text {
+            font-family: var(--font-sans);
+            font-size: 16px;
+            font-weight: 300;
+            line-height: 1.5;
+            color: var(--color-white);
+        }
+
+        .summary-note {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 300;
+            line-height: 1.5;
+            color: var(--color-text-3);
+            font-style: italic;
+        }
+
+        .summary-empty {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 32px 0;
+            border-top: 1px solid var(--color-border-light);
+        }
+        .summary-empty-title {
+            font-family: var(--font-serif);
+            font-size: 24px;
+            font-weight: 400;
+            color: var(--color-cream);
+            line-height: 1.3;
+        }
+        .summary-empty-text {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 300;
+            color: var(--color-text-2);
+            max-width: 440px;
+            line-height: 1.6;
+        }
+
+        .home-summary-meta {
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 300;
+            letter-spacing: 1.5px;
+            color: var(--color-text-4);
+            text-transform: uppercase;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--color-border-light);
+        }
+        .home-summary-meta:empty { display: none; }
 
         /* ================ ENTRY SCREEN ================ */
         #entryScreen {
@@ -483,8 +584,12 @@
             .screen { padding: 32px 20px; }
             #loginScreen h1 { font-size: 40px; }
             #loginScreen .tagline { font-size: 18px; margin-bottom: 48px; }
-            .play-btn { width: 140px; height: 140px; }
-            .play-btn svg { width: 38px; height: 38px; margin-left: 4px; }
+            .home-top { gap: 12px; margin-bottom: 24px; }
+            .home-top-right .meta { font-size: 10px; letter-spacing: 1.5px; }
+            .home-top-right .meta-count { font-size: 10px; letter-spacing: 1.5px; }
+            .home-summary { gap: 28px; }
+            .summary-text { font-size: 15px; }
+            .summary-note { font-size: 11px; }
             .entry-section h2 { font-size: 28px; }
             .entry-textarea { font-size: 16px; padding: 18px; }
             .entry-actions { width: 100%; }
@@ -521,26 +626,26 @@
          ============================================ -->
     <div id="homeScreen" class="screen">
         <div class="home-top">
-            <div class="logo-stack">
-                <div class="version" data-version></div>
-                <div class="logo">FORMA ROSA CREATIVE</div>
+            <div class="home-top-left">
+                <div class="logo-stack">
+                    <div class="version" data-version></div>
+                    <div class="logo">FORMA ROSA CREATIVE</div>
+                </div>
+                <button class="play-btn" id="playBtn" aria-label="Create a new entry" title="Create a new entry">
+                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 5 L19 12 L8 19 Z" />
+                    </svg>
+                </button>
             </div>
-            <div class="meta" id="todayMeta"></div>
+            <div class="home-top-right">
+                <div class="meta" id="todayMeta"></div>
+                <div class="meta-count" id="entryCount">0 entries</div>
+            </div>
         </div>
 
-        <div class="home-center">
-            <div class="label">Create a new entry</div>
-            <button class="play-btn" id="playBtn" aria-label="Create a new entry">
-                <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M8 5 L19 12 L8 19 Z" />
-                </svg>
-            </button>
-        </div>
+        <div class="home-summary" id="homeSummary"></div>
 
-        <div class="home-bottom">
-            <div class="count" id="entryCount">0</div>
-            <div class="count-label">Entries</div>
-        </div>
+        <div class="home-summary-meta" id="homeSummaryMeta"></div>
     </div>
 
     <!-- ============================================
@@ -603,7 +708,7 @@
     // ============================================
     // App version. Bumped automatically by push.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '1.0.2';
+    const APP_VERSION = '1.0.3';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
@@ -617,9 +722,11 @@
     // ============================================
     // STATE
     // ============================================
-    let githubToken = null;
-    let yearData    = {};   // { 2026: [entry, ...] }
-    let yearShas    = {};   // { 2026: 'sha-string' }
+    let githubToken    = null;
+    let yearData       = {};   // { 2026: [entry, ...] }
+    let yearShas       = {};   // { 2026: 'sha-string' }
+    let summaryData    = null; // last fetched summary.json contents
+    let summaryFetched = false;
 
     // Mic / recording state
     let recognition         = null;
@@ -692,8 +799,10 @@
     }
 
     function refreshHome() {
-        $('entryCount').textContent = entryCount();
+        const n = entryCount();
+        $('entryCount').textContent = n === 1 ? '1 entry' : `${n} entries`;
         $('todayMeta').textContent  = nowMeta();
+        renderSummary();
     }
 
     // ============================================
@@ -774,6 +883,105 @@
         }
     }
 
+    // GET summary.json. Returns the parsed object, or null on 404 / parse error.
+    // Auth errors still bubble.
+    async function loadSummary() {
+        const res = await ghFetch(`${dataUrl('summary.json')}?ref=${DATA_BRANCH}&t=${Date.now()}`, {
+            cache: 'no-store'
+        });
+        if (res.status === 404) return null;
+        if (res.status === 401 || res.status === 403) throw new Error('AUTH');
+        if (!res.ok) {
+            console.warn(`load summary.json failed: ${res.status}`);
+            return null;
+        }
+        const body = await res.json();
+        try {
+            return JSON.parse(b64decodeUtf8(body.content));
+        } catch (e) {
+            console.error('summary.json is not valid JSON:', e);
+            return null;
+        }
+    }
+
+    // Render summaryData into the home screen.
+    function renderSummary() {
+        const host = $('homeSummary');
+        const meta = $('homeSummaryMeta');
+        if (!host || !meta) return;
+
+        host.innerHTML = '';
+        meta.textContent = '';
+
+        const sections = (summaryData && Array.isArray(summaryData.sections)) ? summaryData.sections : [];
+        const hasContent = sections.some(s => Array.isArray(s.items) && s.items.length > 0);
+
+        if (!hasContent) {
+            // Empty state - whether the file is missing, empty, or has no items.
+            const empty = document.createElement('div');
+            empty.className = 'summary-empty';
+            const title = document.createElement('div');
+            title.className = 'summary-empty-title';
+            title.textContent = 'No summary yet.';
+            const text = document.createElement('div');
+            text.className = 'summary-empty-text';
+            text.textContent = 'Capture some entries below, then chat with Cowork to generate your first review.';
+            empty.appendChild(title);
+            empty.appendChild(text);
+            host.appendChild(empty);
+            return;
+        }
+
+        sections.forEach(section => {
+            if (!Array.isArray(section.items) || section.items.length === 0) return;
+
+            const sectionEl = document.createElement('div');
+            sectionEl.className = 'summary-section';
+
+            const titleEl = document.createElement('div');
+            titleEl.className = 'summary-section-title';
+            titleEl.textContent = section.title || '';
+            sectionEl.appendChild(titleEl);
+
+            const list = document.createElement('ul');
+            list.className = 'summary-list';
+
+            section.items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'summary-item';
+
+                const text = document.createElement('div');
+                text.className = 'summary-text';
+                text.textContent = (item && item.text) ? String(item.text) : '';
+                li.appendChild(text);
+
+                if (item && item.note) {
+                    const note = document.createElement('div');
+                    note.className = 'summary-note';
+                    note.textContent = String(item.note);
+                    li.appendChild(note);
+                }
+
+                list.appendChild(li);
+            });
+
+            sectionEl.appendChild(list);
+            host.appendChild(sectionEl);
+        });
+
+        // "Last updated" footer
+        if (summaryData && summaryData.updated_at) {
+            try {
+                const d = new Date(summaryData.updated_at);
+                const formatted = d.toLocaleString('en-US', {
+                    month: 'short', day: 'numeric',
+                    hour: 'numeric', minute: '2-digit'
+                });
+                meta.textContent = `Last updated ${formatted}`;
+            } catch (_) { /* ignore bad date */ }
+        }
+    }
+
     async function saveEntry(entry) {
         const year = new Date(entry.timestamp).getUTCFullYear();
         if (!yearData[year]) yearData[year] = [];
@@ -804,6 +1012,17 @@
         try {
             setPatStatus('connecting...');
             await loadAllYears();
+            // Summary is best-effort; AUTH on summary still bubbles via the
+            // throw inside loadSummary.
+            try {
+                summaryData = await loadSummary();
+                summaryFetched = true;
+            } catch (err) {
+                if (err.message === 'AUTH') throw err;
+                summaryData = null;
+                summaryFetched = true;
+                console.warn('summary fetch failed, continuing without it:', err);
+            }
             // Persist token only after a successful read
             localStorage.setItem(PAT_STORAGE_KEY, token);
             $('resetLink').classList.add('visible');
@@ -829,6 +1048,8 @@
         githubToken = null;
         yearData = {};
         yearShas = {};
+        summaryData = null;
+        summaryFetched = false;
         $('resetLink').classList.remove('visible');
         showScreen('loginScreen');
         $('patInput').focus();
@@ -1123,12 +1344,11 @@
         connectedAt = null;
     }
 
-    // Called from openEntry — primes the panel for a fresh entry
+    // Called from openEntry - primes the panel for a fresh entry
     function resetRecordingPanel() {
         deactivateRecordingPanel();
         setRecordingState(null, 'disconnected');
         $('recordingTime').textContent = '0:00';
-        // Set canvas backing-store size for hi-DPI sharpness on each open.
         const canvas = $('waveform');
         const dpr = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
@@ -1141,7 +1361,6 @@
 
     function activateRecordingPanel() {
         $('recordingPanel').classList.add('active');
-        // Re-measure canvas in case the layout settled after the screen swap.
         const canvas = $('waveform');
         const dpr = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
@@ -1182,23 +1401,14 @@
         const elapsed = now - recordingStartedAt;
         $('recordingTime').textContent = fmtTime(elapsed);
 
-        // Hold "connected" for a beat after the handshake completes,
-        // so the user actually sees it before normal status takes over.
         if (connectedAt && now - connectedAt < CONNECTED_HOLD_MS) {
             setRecordingState('live', 'connected');
             return;
         }
 
-        // Status priorities once we're past the connected hold:
-        //   1. just transcribed (within 1.5s) → "transcribed"
-        //   2. sound recently detected → "speech detected"
-        //   3. silent for >3s of being-listening → "no audio detected"
-        //   4. otherwise → "listening"
         const sinceListening = connectedAt ? (now - (connectedAt + CONNECTED_HOLD_MS)) : elapsed;
         const stateEl = $('recordingState');
         if (stateEl.classList.contains('warn')) {
-            // Recognizer reported a real problem — leave it for a beat,
-            // but recover to "listening" if audio comes back.
             if (lastSoundAt && now - lastSoundAt < 800) {
                 setRecordingState('live', 'listening');
             }
@@ -1215,9 +1425,8 @@
         }
     }
 
-    // Returns true if we're inside the connecting/connected hold window.
     function inHandshake() {
-        if (!connectedAt) return true; // still connecting
+        if (!connectedAt) return true;
         return Date.now() - connectedAt < CONNECTED_HOLD_MS;
     }
 
@@ -1225,7 +1434,7 @@
         if (!analyser) return;
         const canvas = $('waveform');
         const ctx = canvas.getContext('2d');
-        const bufferLength = analyser.frequencyBinCount; // 256 for fftSize 512
+        const bufferLength = analyser.frequencyBinCount;
         const dataArray = new Uint8Array(bufferLength);
 
         const BAR_COUNT = 48;
@@ -1241,9 +1450,9 @@
             const H = canvas.height;
             ctx.clearRect(0, 0, W, H);
 
-            const barW   = (W / BAR_COUNT) * 0.55;
-            const gap    = (W - BAR_COUNT * barW) / (BAR_COUNT - 1);
-            let peak     = 0;
+            const barW = (W / BAR_COUNT) * 0.55;
+            const gap  = (W - BAR_COUNT * barW) / (BAR_COUNT - 1);
+            let peak   = 0;
 
             ctx.fillStyle = '#d4c4b5';
 
@@ -1254,7 +1463,7 @@
                     sumSq += v * v;
                 }
                 const rms = Math.sqrt(sumSq / samplesPerBar);
-                const amp = Math.min(1, rms * 4); // amplify for visibility
+                const amp = Math.min(1, rms * 4);
                 if (amp > peak) peak = amp;
 
                 const barH = Math.max(2, amp * H * 0.92);
@@ -1263,7 +1472,6 @@
                 ctx.fillRect(x, y, barW, barH);
             }
 
-            // Track sound activity (-30 dBFS threshold-ish via amplitude proxy)
             if (peak > 0.04) {
                 lastSoundAt = Date.now();
             }
@@ -1272,9 +1480,6 @@
         draw();
     }
 
-    // ============================================
-    // EVENT WIRING
-    // ============================================
     function wireEvents() {
         $('connectBtn').addEventListener('click', () => {
             const token = $('patInput').value.trim();
@@ -1298,7 +1503,6 @@
         $('micBtn').addEventListener('click', toggleRecording);
         $('resetLink').addEventListener('click', resetConnection);
 
-        // keyboard shortcuts on entry screen
         $('entryText').addEventListener('keydown', (e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
                 e.preventDefault();
@@ -1310,11 +1514,7 @@
         });
     }
 
-    // ============================================
-    // INIT
-    // ============================================
     window.addEventListener('DOMContentLoaded', () => {
-        // Stamp the version label everywhere it's needed.
         document.querySelectorAll('[data-version]').forEach(el => {
             el.textContent = `v${APP_VERSION}`;
         });
