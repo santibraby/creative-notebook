@@ -66,7 +66,22 @@ On submit, the app:
 
 ## Microphone
 
-Uses the browser's built-in Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`). Currently locale is `en-US`. Tap the mic icon to start dictating; it appends final transcripts onto whatever's already typed. Tap again to stop. Browsers vary in support — Chrome and Safari work best. If unsupported, the mic button disables itself.
+Tap the mic icon to start dictating; tap again to stop. The app runs two browser APIs in parallel on the same microphone, so you always know what's happening:
+
+- **Web Speech API** (`SpeechRecognition` / `webkitSpeechRecognition`) — does the actual transcription. Locale is `en-US`. Final phrases are appended to whatever's already typed.
+- **Web Audio API** (`AnalyserNode`) — drives a live waveform of vertical bars and a silence detector. Even if the speech engine has a hiccup, the waveform proves your mic is being captured.
+
+Status indicator (in the recording panel below the textarea) cycles through:
+
+- **listening** — mic is open, no speech yet
+- **speech detected** — the analyser sees audio peaks above the noise floor
+- **transcribed** — a final transcript just arrived
+- **no audio detected** — silent for 3+ seconds (likely a mic problem)
+- **could not understand** / **recognition error - retrying** — the engine reported a problem; will keep trying
+
+Both APIs need microphone permission. The browser should only prompt once per session. The waveform requires `AnalyserNode` (universal in modern browsers); the transcription requires `SpeechRecognition` (Chrome and Safari work best). If transcription is unsupported, the mic button disables itself.
+
+No audio is recorded or stored — speech is transcribed live and only the resulting text is saved.
 
 ## What's next
 

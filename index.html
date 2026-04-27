@@ -345,7 +345,7 @@
             cursor: not-allowed;
         }
 
-        .mic-status {
+        .mic-hint {
             font-family: var(--font-sans);
             font-size: 11px;
             letter-spacing: 2px;
@@ -354,12 +354,73 @@
             margin-left: 4px;
             flex: 1;
         }
-        .mic-status.live { color: var(--color-cream); }
 
         .entry-actions {
             display: flex;
             gap: 12px;
         }
+
+        /* ================ RECORDING PANEL ================ */
+        .recording-panel {
+            display: flex;
+            margin-top: 16px;
+            padding: 16px 20px;
+            background: var(--color-charcoal);
+            border: 1px solid var(--color-border-light);
+            flex-direction: column;
+            gap: 12px;
+            transition: background 0.25s ease, border-color 0.25s ease;
+        }
+        .recording-panel.active {
+            background: var(--color-highlight-bg);
+            border-color: var(--color-highlight-border);
+        }
+
+        .waveform {
+            width: 100%;
+            height: 48px;
+            display: block;
+        }
+
+        .recording-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .recording-state {
+            color: var(--color-text-3);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .recording-state .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-text-4);
+            display: inline-block;
+        }
+        .recording-state.live { color: var(--color-cream); }
+        .recording-state.live .dot {
+            background: var(--color-cream);
+            animation: pulse 1.4s ease-in-out infinite;
+        }
+        .recording-state.warn { color: #c44; }
+        .recording-state.warn .dot { background: #c44; }
+        .recording-state.transcribing { color: var(--color-cream); }
+        .recording-state.transcribing .dot { background: var(--color-cream); }
+
+        .recording-time {
+            color: var(--color-text-3);
+            font-variant-numeric: tabular-nums;
+        }
+        .recording-time.warn { color: #c44; }
 
         /* ================ TOAST ================ */
         .toast {
@@ -479,6 +540,17 @@
                       placeholder="type here, or tap the microphone to dictate..."></textarea>
         </div>
 
+        <div id="recordingPanel" class="recording-panel">
+            <canvas id="waveform" class="waveform" aria-hidden="true"></canvas>
+            <div class="recording-meta">
+                <div id="recordingState" class="recording-state">
+                    <span class="dot"></span>
+                    <span id="recordingStateText">disconnected</span>
+                </div>
+                <div id="recordingTime" class="recording-time">0:00</div>
+            </div>
+        </div>
+
         <div class="entry-controls">
             <button id="micBtn" class="mic-btn" aria-label="Toggle microphone">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -489,7 +561,7 @@
                     <line x1="8" y1="22" x2="16" y2="22"/>
                 </svg>
             </button>
-            <div id="micStatus" class="mic-status"></div>
+            <div id="micHint" class="mic-hint">Tap to dictate</div>
             <div class="entry-actions">
                 <button id="cancelBtn" class="btn btn-quiet">Cancel</button>
                 <button id="saveBtn" class="btn">Save Entry</button>
@@ -522,9 +594,24 @@
     let githubToken = null;
     let yearData    = {};   // { 2026: [entry, ...] }
     let yearShas    = {};   // { 2026: 'sha-string' }
-    let recognition = null;
-    let isRecording = false;
-    let usedVoiceThisEntry = false;
+
+    // Mic / recording state
+    let recognition         = null;
+    let isRecording         = false;
+    let usedVoiceThisEntry  = false;
+    let mediaStream         = null;
+    let audioContext        = null;
+    let analyser            = null;
+    let waveformAnimId      = null;
+    let recordingStartedAt  = null;
+    let recordingTimerId    = null;
+    let lastSoundAt         = null;
+    let lastTranscriptAt    = null;
+    let recognitionRetries  = 0;
+    let connectedAt         = null;
+
+    const CONNECTING_MIN_MS = 600;   // hold "connecting..." for at least this long
+    const CONNECTED_HOLD_MS = 1500;  // hold "connected" before showing "listening"
 
     // ============================================
     // UTILITIES
@@ -737,9 +824,8 @@
     function openEntry() {
         $('entryText').value = '';
         $('entryMeta').textContent = nowMeta();
-        $('micStatus').textContent = '';
-        $('micStatus').classList.remove('live');
         usedVoiceThisEntry = false;
+        resetRecordingPanel();
         showScreen('entryScreen');
         setTimeout(() => $('entryText').focus(), 80);
     }
@@ -790,13 +876,22 @@
     }
 
     // ============================================
-    // SPEECH RECOGNITION
+    // MIC: SPEECH RECOGNITION + WAVEFORM
     // ============================================
+    // We run two things in parallel on the same mic input:
+    //   1. SpeechRecognition (Web Speech API) - for live transcription.
+    //   2. AnalyserNode      (Web Audio API)  - for the visual waveform
+    //                                            and silence detection.
+    // The waveform proves audio is being captured; the transcription
+    // proves it's being understood. If one fails we can still surface
+    // a clear status to the user.
+
     function initSpeechRecognition() {
         const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SR) {
             $('micBtn').disabled = true;
             $('micBtn').title = 'Speech recognition not supported in this browser';
+            $('micHint').textContent = 'Speech not supported in this browser';
             return;
         }
         recognition = new SR();
@@ -817,21 +912,57 @@
                 const sep = textInput.value && !/\s$/.test(textInput.value) ? ' ' : '';
                 textInput.value = (textInput.value + sep + finalTranscript).replace(/\s+/g, ' ').trimStart();
                 usedVoiceThisEntry = true;
+                lastTranscriptAt = Date.now();
+                if (!inHandshake()) {
+                    setRecordingState('transcribing', 'transcribed');
+                }
+            }
+        };
+
+        recognition.onspeechstart = () => {
+            if (!inHandshake()) {
+                setRecordingState('live', 'speech detected');
+            }
+        };
+
+        recognition.onnomatch = () => {
+            if (!inHandshake()) {
+                setRecordingState('warn', 'could not understand');
             }
         };
 
         recognition.onerror = (event) => {
             console.error('Speech recognition error:', event.error);
-            stopRecording();
-            if (event.error === 'not-allowed') {
+            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
                 showToast('microphone permission denied', true);
+                stopRecording();
+                return;
+            }
+            if (event.error === 'no-speech') {
+                if (!inHandshake()) {
+                    setRecordingState('warn', 'no speech detected');
+                }
+                return; // recognizer will end; onend will restart it
+            }
+            if (event.error === 'aborted') {
+                return; // we stopped it on purpose
+            }
+            // network / generic — surface and let it auto-retry
+            if (!inHandshake()) {
+                setRecordingState('warn', 'recognition error - retrying');
             }
         };
 
         recognition.onend = () => {
-            // If the engine stops on its own while we're still in "recording" mode, restart
+            // The engine periodically stops itself. If we're still meant
+            // to be recording, restart it.
             if (isRecording) {
-                try { recognition.start(); } catch (_) { /* ignore */ }
+                recognitionRetries++;
+                if (recognitionRetries > 30) {
+                    setRecordingState('warn', 'recognition keeps dropping');
+                    return;
+                }
+                try { recognition.start(); } catch (_) { /* benign — already starting */ }
             }
         };
     }
@@ -845,26 +976,274 @@
         else startRecording();
     }
 
-    function startRecording() {
-        if (!recognition || isRecording) return;
+    async function startRecording() {
+        if (isRecording) return;
+
+        // Flip into "recording" mode immediately so a second mic-tap stops it
+        // mid-handshake. We start in the "connecting" state.
+        isRecording        = true;
+        recordingStartedAt = Date.now();
+        const connectingStartedAt = Date.now();
+        lastSoundAt        = null;
+        lastTranscriptAt   = null;
+        connectedAt        = null;
+        recognitionRetries = 0;
+        $('micBtn').classList.add('recording');
+        $('micHint').textContent = 'Tap to disconnect';
+        activateRecordingPanel();
+        setRecordingState('live', 'connecting...');
+
+        // 1) Get a mic stream we control, for the waveform + silence detect.
+        try {
+            mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (err) {
+            console.error('getUserMedia failed:', err);
+            if (err && err.name === 'NotAllowedError') {
+                showToast('microphone permission denied', true);
+            } else {
+                showToast('cannot access microphone', true);
+            }
+            stopRecording();
+            return;
+        }
+
+        // If user tapped the mic again while we were waiting for permission
+        if (!isRecording) {
+            mediaStream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
+            mediaStream = null;
+            return;
+        }
+
+        // 2) Wire up the analyser graph for the waveform.
+        try {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            audioContext = new Ctx();
+            const source = audioContext.createMediaStreamSource(mediaStream);
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 512;
+            analyser.smoothingTimeConstant = 0.4;
+            source.connect(analyser);
+        } catch (err) {
+            console.error('audio analyser setup failed:', err);
+            // Non-fatal - recording continues without the waveform.
+        }
+
+        // 3) Start the speech recognizer.
         try {
             recognition.start();
-            isRecording = true;
-            $('micBtn').classList.add('recording');
-            $('micStatus').textContent = 'Listening';
-            $('micStatus').classList.add('live');
         } catch (err) {
-            console.error('start recording failed:', err);
+            console.warn('recognition.start() threw:', err);
+            // Continue - the recognizer may already be starting.
+        }
+
+        // 4) Hold "connecting..." for a beat so the user actually sees it,
+        //    then flip to "connected" and let the normal state machine take over.
+        const elapsed = Date.now() - connectingStartedAt;
+        const wait = Math.max(0, CONNECTING_MIN_MS - elapsed);
+        if (wait > 0) {
+            await new Promise(r => setTimeout(r, wait));
+        }
+        if (!isRecording) return; // user cancelled mid-handshake
+
+        connectedAt = Date.now();
+        setRecordingState('live', 'connected');
+
+        // 5) Kick off the render + status loops.
+        startWaveform();
+        if (!recordingTimerId) {
+            recordingTimerId = setInterval(updateRecordingMeta, 200);
         }
     }
 
     function stopRecording() {
-        if (!recognition || !isRecording) return;
+        if (!isRecording) return;
         isRecording = false;
-        try { recognition.stop(); } catch (_) { /* ignore */ }
+
+        // Stop the recognizer (onend will see isRecording=false and not restart)
+        try { recognition && recognition.stop(); } catch (_) { /* ignore */ }
+
+        // Stop the waveform render loop
+        if (waveformAnimId) {
+            cancelAnimationFrame(waveformAnimId);
+            waveformAnimId = null;
+        }
+
+        // Stop the meta timer
+        if (recordingTimerId) {
+            clearInterval(recordingTimerId);
+            recordingTimerId = null;
+        }
+
+        // Release the audio graph
+        if (audioContext) {
+            try { audioContext.close(); } catch (_) { /* ignore */ }
+            audioContext = null;
+        }
+        analyser = null;
+
+        // Release the mic
+        if (mediaStream) {
+            mediaStream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
+            mediaStream = null;
+        }
+
+        // UI back to disconnected idle
         $('micBtn').classList.remove('recording');
-        $('micStatus').textContent = '';
-        $('micStatus').classList.remove('live');
+        $('micHint').textContent = 'Tap to dictate';
+        deactivateRecordingPanel();
+        setRecordingState(null, 'disconnected');
+        $('recordingTime').textContent = '0:00';
+        clearWaveformCanvas();
+        connectedAt = null;
+    }
+
+    // Called from openEntry — primes the panel for a fresh entry
+    function resetRecordingPanel() {
+        deactivateRecordingPanel();
+        setRecordingState(null, 'disconnected');
+        $('recordingTime').textContent = '0:00';
+        // Set canvas backing-store size for hi-DPI sharpness on each open.
+        const canvas = $('waveform');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width && rect.height) {
+            canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
+            canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+        }
+        clearWaveformCanvas();
+    }
+
+    function activateRecordingPanel() {
+        $('recordingPanel').classList.add('active');
+        // Re-measure canvas in case the layout settled after the screen swap.
+        const canvas = $('waveform');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width && rect.height) {
+            canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
+            canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+        }
+    }
+
+    function deactivateRecordingPanel() {
+        $('recordingPanel').classList.remove('active');
+    }
+
+    function clearWaveformCanvas() {
+        const canvas = $('waveform');
+        const ctx = canvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function setRecordingState(kind, label) {
+        const el = $('recordingState');
+        if (!el) return;
+        el.classList.remove('live', 'warn', 'transcribing');
+        if (kind) el.classList.add(kind);
+        $('recordingStateText').textContent = label;
+    }
+
+    function fmtTime(ms) {
+        const total = Math.floor(ms / 1000);
+        const m = Math.floor(total / 60);
+        const s = total % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function updateRecordingMeta() {
+        if (!isRecording) return;
+        const now = Date.now();
+        const elapsed = now - recordingStartedAt;
+        $('recordingTime').textContent = fmtTime(elapsed);
+
+        // Hold "connected" for a beat after the handshake completes,
+        // so the user actually sees it before normal status takes over.
+        if (connectedAt && now - connectedAt < CONNECTED_HOLD_MS) {
+            setRecordingState('live', 'connected');
+            return;
+        }
+
+        // Status priorities once we're past the connected hold:
+        //   1. just transcribed (within 1.5s) → "transcribed"
+        //   2. sound recently detected → "speech detected"
+        //   3. silent for >3s of being-listening → "no audio detected"
+        //   4. otherwise → "listening"
+        const sinceListening = connectedAt ? (now - (connectedAt + CONNECTED_HOLD_MS)) : elapsed;
+        const stateEl = $('recordingState');
+        if (stateEl.classList.contains('warn')) {
+            // Recognizer reported a real problem — leave it for a beat,
+            // but recover to "listening" if audio comes back.
+            if (lastSoundAt && now - lastSoundAt < 800) {
+                setRecordingState('live', 'listening');
+            }
+            return;
+        }
+        if (lastTranscriptAt && now - lastTranscriptAt < 1500) {
+            setRecordingState('transcribing', 'transcribed');
+        } else if (lastSoundAt && now - lastSoundAt < 800) {
+            setRecordingState('live', 'speech detected');
+        } else if (sinceListening > 3000 && (!lastSoundAt || now - lastSoundAt > 3000)) {
+            setRecordingState('warn', 'no audio detected');
+        } else {
+            setRecordingState('live', 'listening');
+        }
+    }
+
+    // Returns true if we're inside the connecting/connected hold window.
+    function inHandshake() {
+        if (!connectedAt) return true; // still connecting
+        return Date.now() - connectedAt < CONNECTED_HOLD_MS;
+    }
+
+    function startWaveform() {
+        if (!analyser) return;
+        const canvas = $('waveform');
+        const ctx = canvas.getContext('2d');
+        const bufferLength = analyser.frequencyBinCount; // 256 for fftSize 512
+        const dataArray = new Uint8Array(bufferLength);
+
+        const BAR_COUNT = 48;
+        const samplesPerBar = Math.floor(bufferLength / BAR_COUNT);
+
+        function draw() {
+            waveformAnimId = requestAnimationFrame(draw);
+            if (!analyser) return;
+
+            analyser.getByteTimeDomainData(dataArray);
+
+            const W = canvas.width;
+            const H = canvas.height;
+            ctx.clearRect(0, 0, W, H);
+
+            const barW   = (W / BAR_COUNT) * 0.55;
+            const gap    = (W - BAR_COUNT * barW) / (BAR_COUNT - 1);
+            let peak     = 0;
+
+            ctx.fillStyle = '#d4c4b5';
+
+            for (let i = 0; i < BAR_COUNT; i++) {
+                let sumSq = 0;
+                for (let j = 0; j < samplesPerBar; j++) {
+                    const v = (dataArray[i * samplesPerBar + j] - 128) / 128;
+                    sumSq += v * v;
+                }
+                const rms = Math.sqrt(sumSq / samplesPerBar);
+                const amp = Math.min(1, rms * 4); // amplify for visibility
+                if (amp > peak) peak = amp;
+
+                const barH = Math.max(2, amp * H * 0.92);
+                const x = i * (barW + gap);
+                const y = (H - barH) / 2;
+                ctx.fillRect(x, y, barW, barH);
+            }
+
+            // Track sound activity (-30 dBFS threshold-ish via amplitude proxy)
+            if (peak > 0.04) {
+                lastSoundAt = Date.now();
+            }
+        }
+
+        draw();
     }
 
     // ============================================
