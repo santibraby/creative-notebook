@@ -265,6 +265,46 @@
             margin-left: 2px; /* optical centering of play triangle */
         }
 
+        /* ================ TABS ================ */
+        .tabs {
+            display: flex;
+            gap: 24px;
+            border-bottom: 1px solid var(--color-border-light);
+            margin-bottom: 24px;
+            flex-shrink: 0;
+        }
+        .tab {
+            background: none;
+            border: none;
+            padding: 8px 0;
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            color: var(--color-text-4);
+            text-transform: uppercase;
+            cursor: pointer;
+            position: relative;
+            transition: color 0.2s ease;
+        }
+        .tab:hover { color: var(--color-text-1); }
+        .tab.active { color: var(--color-cream); }
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: 0; right: 0;
+            height: 1px;
+            background: var(--color-cream);
+        }
+
+        .panel {
+            display: none;
+            flex: 1;
+            min-height: 0;
+            flex-direction: column;
+        }
+        .panel.active { display: flex; }
+
         /* ================ HOME SUMMARY ================ */
         .home-summary {
             flex: 1;
@@ -277,6 +317,90 @@
         }
         .home-summary::-webkit-scrollbar { width: 4px; }
         .home-summary::-webkit-scrollbar-thumb { background: var(--color-border); }
+
+        /* ================ LIST PANELS (Network / Brands / Studios) ================ */
+        .list-panel {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            padding-right: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        .list-panel::-webkit-scrollbar { width: 4px; }
+        .list-panel::-webkit-scrollbar-thumb { background: var(--color-border); }
+
+        .list-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .list-section-title {
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 400;
+            letter-spacing: 2px;
+            color: var(--color-text-4);
+            text-transform: uppercase;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--color-border-light);
+            margin-bottom: 8px;
+        }
+
+        .list-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--color-border-light);
+        }
+        .list-item:last-child { border-bottom: none; }
+
+        .list-item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .list-item-name {
+            font-family: var(--font-sans);
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--color-white);
+            flex: 1;
+        }
+        .list-item-status {
+            font-family: var(--font-sans);
+            font-size: 9px;
+            font-weight: 400;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-3);
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .list-item-status.called  { color: var(--color-cream); border-color: var(--color-cream); }
+        .list-item-status.warm    { color: var(--color-cream); border-color: var(--color-cream); background: var(--color-highlight-bg); }
+        .list-item-status.high    { color: var(--color-cream); border-color: var(--color-cream); }
+        .list-item-context {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 300;
+            color: var(--color-text-3);
+            line-height: 1.5;
+        }
+        .list-item-meta {
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 300;
+            color: var(--color-text-4);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
 
         .summary-section {
             display: flex;
@@ -643,9 +767,29 @@
             </div>
         </div>
 
-        <div class="home-summary" id="homeSummary"></div>
+        <div class="tabs">
+            <button class="tab active" data-tab="home">Home</button>
+            <button class="tab" data-tab="network">Network</button>
+            <button class="tab" data-tab="brands">Brands</button>
+            <button class="tab" data-tab="studios">Studios</button>
+        </div>
 
-        <div class="home-summary-meta" id="homeSummaryMeta"></div>
+        <div id="homePanel" class="panel active">
+            <div class="home-summary" id="homeSummary"></div>
+            <div class="home-summary-meta" id="homeSummaryMeta"></div>
+        </div>
+
+        <div id="networkPanel" class="panel">
+            <div class="list-panel" id="networkList"></div>
+        </div>
+
+        <div id="brandsPanel" class="panel">
+            <div class="list-panel" id="brandsList"></div>
+        </div>
+
+        <div id="studiosPanel" class="panel">
+            <div class="list-panel" id="studiosList"></div>
+        </div>
     </div>
 
     <!-- ============================================
@@ -708,7 +852,7 @@
     // ============================================
     // App version. Bumped automatically by push.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '1.0.3';
+    const APP_VERSION = '1.0.4';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
@@ -727,6 +871,9 @@
     let yearShas       = {};   // { 2026: 'sha-string' }
     let summaryData    = null; // last fetched summary.json contents
     let summaryFetched = false;
+    let networkData    = null;
+    let brandsData     = null;
+    let studiosData    = null;
 
     // Mic / recording state
     let recognition         = null;
@@ -803,6 +950,18 @@
         $('entryCount').textContent = n === 1 ? '1 entry' : `${n} entries`;
         $('todayMeta').textContent  = nowMeta();
         renderSummary();
+        renderNetwork();
+        renderBrands();
+        renderStudios();
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.tab === tabName);
+        });
+        document.querySelectorAll('.panel').forEach(p => {
+            p.classList.toggle('active', p.id === `${tabName}Panel`);
+        });
     }
 
     // ============================================
@@ -883,26 +1042,32 @@
         }
     }
 
-    // GET summary.json. Returns the parsed object, or null on 404 / parse error.
+    // GET an auxiliary JSON file (summary.json, network.json, etc.).
+    // Returns the parsed object, or null on 404 / parse error.
     // Auth errors still bubble.
-    async function loadSummary() {
-        const res = await ghFetch(`${dataUrl('summary.json')}?ref=${DATA_BRANCH}&t=${Date.now()}`, {
+    async function loadJsonFile(path) {
+        const res = await ghFetch(`${dataUrl(path)}?ref=${DATA_BRANCH}&t=${Date.now()}`, {
             cache: 'no-store'
         });
         if (res.status === 404) return null;
         if (res.status === 401 || res.status === 403) throw new Error('AUTH');
         if (!res.ok) {
-            console.warn(`load summary.json failed: ${res.status}`);
+            console.warn(`load ${path} failed: ${res.status}`);
             return null;
         }
         const body = await res.json();
         try {
             return JSON.parse(b64decodeUtf8(body.content));
         } catch (e) {
-            console.error('summary.json is not valid JSON:', e);
+            console.error(`${path} is not valid JSON:`, e);
             return null;
         }
     }
+
+    function loadSummary() { return loadJsonFile('summary.json'); }
+    function loadNetwork() { return loadJsonFile('network.json'); }
+    function loadBrands()  { return loadJsonFile('target-brands.json'); }
+    function loadStudios() { return loadJsonFile('target-studios.json'); }
 
     // Render summaryData into the home screen.
     function renderSummary() {
@@ -1012,16 +1177,17 @@
         try {
             setPatStatus('connecting...');
             await loadAllYears();
-            // Summary is best-effort; AUTH on summary still bubbles via the
-            // throw inside loadSummary.
+            // Auxiliary JSONs are best-effort; AUTH still bubbles.
             try {
                 summaryData = await loadSummary();
+                networkData = await loadNetwork();
+                brandsData  = await loadBrands();
+                studiosData = await loadStudios();
                 summaryFetched = true;
             } catch (err) {
                 if (err.message === 'AUTH') throw err;
-                summaryData = null;
                 summaryFetched = true;
-                console.warn('summary fetch failed, continuing without it:', err);
+                console.warn('aux fetch failed, continuing without it:', err);
             }
             // Persist token only after a successful read
             localStorage.setItem(PAT_STORAGE_KEY, token);
@@ -1050,6 +1216,9 @@
         yearShas = {};
         summaryData = null;
         summaryFetched = false;
+        networkData = null;
+        brandsData  = null;
+        studiosData = null;
         $('resetLink').classList.remove('visible');
         showScreen('loginScreen');
         $('patInput').focus();
@@ -1480,6 +1649,218 @@
         draw();
     }
 
+    // ============================================
+    // RENDERERS FOR THE LIST PANELS
+    // ============================================
+    function renderNetwork() {
+        const host = $('networkList');
+        if (!host) return;
+        host.innerHTML = '';
+        if (!networkData || !Array.isArray(networkData.people) || networkData.people.length === 0) {
+            renderEmpty(host, 'No network list yet.', 'Chat with Cowork to build your contacts list.');
+            return;
+        }
+        const buckets = {};
+        const order = ['warm-lead','miami-alumni','alcova','pratt-prof','pratt-colleague','industry','fabricator','gallery','network-bridge'];
+        const labels = {
+            'warm-lead':       'Active warm leads',
+            'miami-alumni':    'Miami group show alumni',
+            'alcova':          'Alcova team',
+            'pratt-prof':      'Pratt - professors',
+            'pratt-colleague': 'Pratt - colleagues',
+            'industry':        'Industry designers',
+            'fabricator':      'Fabricators',
+            'gallery':         'Galleries',
+            'network-bridge':  'Network bridges'
+        };
+        networkData.people.forEach(p => {
+            const cat = p.category || 'industry';
+            if (!buckets[cat]) buckets[cat] = [];
+            buckets[cat].push(p);
+        });
+        order.forEach(cat => {
+            const list = buckets[cat];
+            if (!list || list.length === 0) return;
+            const section = document.createElement('div');
+            section.className = 'list-section';
+            const title = document.createElement('div');
+            title.className = 'list-section-title';
+            title.textContent = labels[cat] || cat;
+            section.appendChild(title);
+            list.forEach(p => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                const row = document.createElement('div');
+                row.className = 'list-item-row';
+                const name = document.createElement('div');
+                name.className = 'list-item-name';
+                name.textContent = p.name || '';
+                row.appendChild(name);
+                if (p.status && p.status !== 'not-contacted') {
+                    const status = document.createElement('div');
+                    status.className = 'list-item-status ' + p.status;
+                    status.textContent = p.status.replace(/-/g, ' ');
+                    row.appendChild(status);
+                }
+                item.appendChild(row);
+                if (p.context) {
+                    const ctx = document.createElement('div');
+                    ctx.className = 'list-item-context';
+                    ctx.textContent = p.context;
+                    item.appendChild(ctx);
+                }
+                if (p.last_contact) {
+                    const meta = document.createElement('div');
+                    meta.className = 'list-item-meta';
+                    meta.textContent = 'last contact: ' + p.last_contact;
+                    item.appendChild(meta);
+                }
+                section.appendChild(item);
+            });
+            host.appendChild(section);
+        });
+    }
+
+    function renderBrands() {
+        const host = $('brandsList');
+        if (!host) return;
+        host.innerHTML = '';
+        if (!brandsData || !Array.isArray(brandsData.brands) || brandsData.brands.length === 0) {
+            renderEmpty(host, 'No brand list yet.', 'Chat with Cowork to build your target brands list.');
+            return;
+        }
+        const section = document.createElement('div');
+        section.className = 'list-section';
+        const title = document.createElement('div');
+        title.className = 'list-section-title';
+        title.textContent = 'Brands you want to design experiences for';
+        section.appendChild(title);
+        brandsData.brands.forEach(b => {
+            const item = document.createElement('div');
+            item.className = 'list-item';
+            const row = document.createElement('div');
+            row.className = 'list-item-row';
+            const name = document.createElement('div');
+            name.className = 'list-item-name';
+            name.textContent = b.name || '';
+            row.appendChild(name);
+            if (b.fit) {
+                const status = document.createElement('div');
+                status.className = 'list-item-status' + (b.fit.includes('high') ? ' high' : '');
+                status.textContent = 'fit: ' + b.fit;
+                row.appendChild(status);
+            }
+            item.appendChild(row);
+            if (b.category) {
+                const meta = document.createElement('div');
+                meta.className = 'list-item-meta';
+                meta.textContent = b.category;
+                item.appendChild(meta);
+            }
+            if (b.notes) {
+                const ctx = document.createElement('div');
+                ctx.className = 'list-item-context';
+                ctx.textContent = b.notes;
+                item.appendChild(ctx);
+            }
+            if (b.ideal_project) {
+                const proj = document.createElement('div');
+                proj.className = 'list-item-context';
+                proj.textContent = 'Ideal: ' + b.ideal_project;
+                item.appendChild(proj);
+            }
+            section.appendChild(item);
+        });
+        host.appendChild(section);
+    }
+
+    function renderStudios() {
+        const host = $('studiosList');
+        if (!host) return;
+        host.innerHTML = '';
+        if (!studiosData || !Array.isArray(studiosData.studios) || studiosData.studios.length === 0) {
+            renderEmpty(host, 'No studio list yet.', 'Chat with Cowork to build your target studios list.');
+            return;
+        }
+        const buckets = { employer: [], reference: [], partner: [] };
+        const labels = {
+            employer:  'Want to work at',
+            reference: 'Want to emulate',
+            partner:   'Fabrication / build partners'
+        };
+        studiosData.studios.forEach(s => {
+            const tk = s.track || 'employer';
+            if (buckets[tk]) buckets[tk].push(s);
+        });
+        ['employer', 'reference', 'partner'].forEach(track => {
+            const list = buckets[track];
+            if (!list || list.length === 0) return;
+            const section = document.createElement('div');
+            section.className = 'list-section';
+            const title = document.createElement('div');
+            title.className = 'list-section-title';
+            title.textContent = labels[track];
+            section.appendChild(title);
+            list.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'list-item';
+                const row = document.createElement('div');
+                row.className = 'list-item-row';
+                const name = document.createElement('div');
+                name.className = 'list-item-name';
+                name.textContent = s.name || '';
+                row.appendChild(name);
+                if (s.fit) {
+                    const status = document.createElement('div');
+                    status.className = 'list-item-status' + (s.fit.includes('high') ? ' high' : '');
+                    status.textContent = 'fit: ' + s.fit;
+                    row.appendChild(status);
+                }
+                item.appendChild(row);
+                if (s.location) {
+                    const meta = document.createElement('div');
+                    meta.className = 'list-item-meta';
+                    meta.textContent = s.location;
+                    item.appendChild(meta);
+                }
+                if (s.what_they_do) {
+                    const ctx = document.createElement('div');
+                    ctx.className = 'list-item-context';
+                    ctx.textContent = s.what_they_do;
+                    item.appendChild(ctx);
+                }
+                if (s.why_aligned) {
+                    const align = document.createElement('div');
+                    align.className = 'list-item-context';
+                    align.textContent = s.why_aligned;
+                    item.appendChild(align);
+                }
+                if (s.current_status) {
+                    const cs = document.createElement('div');
+                    cs.className = 'list-item-meta';
+                    cs.textContent = 'status: ' + s.current_status;
+                    item.appendChild(cs);
+                }
+                section.appendChild(item);
+            });
+            host.appendChild(section);
+        });
+    }
+
+    function renderEmpty(host, title, text) {
+        const empty = document.createElement('div');
+        empty.className = 'summary-empty';
+        const t = document.createElement('div');
+        t.className = 'summary-empty-title';
+        t.textContent = title;
+        const x = document.createElement('div');
+        x.className = 'summary-empty-text';
+        x.textContent = text;
+        empty.appendChild(t);
+        empty.appendChild(x);
+        host.appendChild(empty);
+    }
+
     function wireEvents() {
         $('connectBtn').addEventListener('click', () => {
             const token = $('patInput').value.trim();
@@ -1502,6 +1883,10 @@
         $('saveBtn').addEventListener('click', submitEntry);
         $('micBtn').addEventListener('click', toggleRecording);
         $('resetLink').addEventListener('click', resetConnection);
+
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+        });
 
         $('entryText').addEventListener('keydown', (e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
