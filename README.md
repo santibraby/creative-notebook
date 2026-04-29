@@ -64,24 +64,35 @@ On submit, the app:
 - **Cmd/Ctrl + Enter** in the entry textarea → save
 - **Esc** in the entry textarea → cancel
 
-## Microphone
+## Microphone (v2.0+)
 
-Tap the mic icon to start dictating; tap again to stop. The app runs two browser APIs in parallel on the same microphone, so you always know what's happening:
+Tap the mic icon, talk, tap again. Transcription happens **on-device** via OpenAI's Whisper model running locally in the browser through Transformers.js. After the model is cached, the mic works completely offline - no server, no API key, no third-party service involved.
 
-- **Web Speech API** (`SpeechRecognition` / `webkitSpeechRecognition`) — does the actual transcription. Locale is `en-US`. Final phrases are appended to whatever's already typed.
-- **Web Audio API** (`AnalyserNode`) — drives a live waveform of vertical bars and a silence detector. Even if the speech engine has a hiccup, the waveform proves your mic is being captured.
+### What you'll see
 
-Status indicator (in the recording panel below the textarea) cycles through:
+| State | When | Meaning |
+|---|---|---|
+| **disconnected** | Idle, between recordings | Ready when you are. |
+| **connecting...** | Right after tap | Asking for mic permission, setting up audio. |
+| **connected** | ~600ms after permission | Handshake done, recording is live. |
+| **recording** | While talking | Default state during recording. Waveform animates with your voice. |
+| **speech detected** | Sound above noise floor | Visual confirmation the mic is hearing you. |
+| **no audio detected** | Silent for 3+ seconds | Likely a mic-permission or hardware issue. |
+| **transcribing...** | After tap-to-stop | Whisper is processing. ~3-6 seconds for a 30-second clip on iPhone 15 Pro. |
 
-- **listening** — mic is open, no speech yet
-- **speech detected** — the analyser sees audio peaks above the noise floor
-- **transcribed** — a final transcript just arrived
-- **no audio detected** — silent for 3+ seconds (likely a mic problem)
-- **could not understand** / **recognition error - retrying** — the engine reported a problem; will keep trying
+### First run
 
-Both APIs need microphone permission. The browser should only prompt once per session. The waveform requires `AnalyserNode` (universal in modern browsers); the transcription requires `SpeechRecognition` (Chrome and Safari work best). If transcription is unsupported, the mic button disables itself.
+The first time you load the app on a device, it downloads the Whisper model (~75 MB for `whisper-base`). **Be on wifi the first time.** The mic-hint area shows download progress as a percentage. After this, the model is cached - the mic works on cellular, weak signal, or fully offline.
 
-No audio is recorded or stored — speech is transcribed live and only the resulting text is saved.
+If Safari evicts the cache (typically after 7 days of not using the site), it'll re-download on the next visit. Installing the app to your home screen via Share → Add to Home Screen makes the cache much more persistent.
+
+### Privacy
+
+Audio recordings are held in browser memory only during a single recording session. They are **never** uploaded, written to disk, or sent to any server. The audio buffer is discarded as soon as Whisper produces text. Only the transcribed text gets saved (to your private GitHub data repo).
+
+### Why Whisper instead of the browser's Web Speech API
+
+The previous version (v1.x) used `SpeechRecognition`, which on iOS Safari routes audio to Apple's servers. That meant the mic broke when cellular was weak (the beach scenario), required slow enunciated speech, and didn't add punctuation. Whisper running locally fixes all three: better accuracy, automatic punctuation, fully offline after first load.
 
 ## Home screen dashboard
 

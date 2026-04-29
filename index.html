@@ -844,15 +844,23 @@
     <div id="toast" class="toast"></div>
     <div id="resetLink" class="reset-link">reset connection</div>
 
-    <script>
+    <script type="module">
     'use strict';
+
+    // On-device speech-to-text engine. See whisper.js.
+    import {
+        loadModel    as whisperLoad,
+        isReady      as whisperIsReady,
+        transcribe   as whisperTranscribe,
+        modelName    as whisperModelName
+    } from './whisper.js';
 
     // ============================================
     // CONFIG — the entire fork surface
     // ============================================
     // App version. Bumped automatically by push.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '1.0.4';
+    const APP_VERSION = '2.0.1';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
@@ -876,7 +884,6 @@
     let studiosData    = null;
 
     // Mic / recording state
-    let recognition         = null;
     let isRecording         = false;
     let usedVoiceThisEntry  = false;
     let mediaStream         = null;
@@ -886,12 +893,18 @@
     let recordingStartedAt  = null;
     let recordingTimerId    = null;
     let lastSoundAt         = null;
-    let lastTranscriptAt    = null;
-    let recognitionRetries  = 0;
     let connectedAt         = null;
 
+    // MediaRecorder + Whisper state (v2.0.0+)
+    let mediaRecorder       = null;
+    let audioChunks         = [];
+    let whisperLoaded       = false;
+    let whisperLoading      = false;
+    let whisperLoadProgress = 0; // 0-100 during download
+    let whisperLoadError    = null;
+
     const CONNECTING_MIN_MS = 600;   // hold "connecting..." for at least this long
-    const CONNECTED_HOLD_MS = 1500;  // hold "connected" before showing "listening"
+    const CONNECTED_HOLD_MS = 1500;  // hold "connected" before showing recording state
 
     // ============================================
     // UTILITIES
@@ -1294,98 +1307,53 @@
     // ============================================
     // MIC: SPEECH RECOGNITION + WAVEFORM
     // ============================================
-    // We run two things in parallel on the same mic input:
-    //   1. SpeechRecognition (Web Speech API) - for live transcription.
-    //   2. AnalyserNode      (Web Audio API)  - for the visual waveform
-    //                                            and silence detection.
-    // The waveform proves audio is being captured; the transcription
-    // proves it's being understood. If one fails we can still surface
-    // a clear status to the user.
+    // v2.0+: speech-to-text runs ON-DEVICE via Whisper (transformers.js).
+    //   1. AnalyserNode (Web Audio API) drives the live waveform during
+    //      recording. Same as v1.x.
+    //   2. MediaRecorder captures the full audio Blob.
+    //   3. On stop, the Blob is fed to whisper.transcribe(), which returns
+    //      a text string. That string is appended to the textarea.
+    // No third-party API. No streaming text. The transcription is BATCH:
+    // record -> tap stop -> short wait -> text appears.
 
-    function initSpeechRecognition() {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SR) {
+    async function initWhisper() {
+        if (whisperLoaded || whisperLoading) return;
+        whisperLoading = true;
+        whisperLoadError = null;
+        try {
+            await whisperLoad((p) => {
+                // p shape: { status, file, progress (0-100), loaded, total }
+                if (p && typeof p.progress === 'number') {
+                    whisperLoadProgress = Math.floor(p.progress);
+                    if (!isRecording) {
+                        // Reflect download progress in the mic-hint area.
+                        $('micHint').textContent = `Loading Whisper: ${whisperLoadProgress}%`;
+                    }
+                }
+            });
+            whisperLoaded  = true;
+            whisperLoading = false;
+            whisperLoadProgress = 100;
+            if (!isRecording) {
+                $('micHint').textContent = 'Tap to dictate';
+            }
+        } catch (err) {
+            console.error('whisper load failed:', err);
+            whisperLoading = false;
+            whisperLoadError = err && err.message ? err.message : String(err);
+            $('micHint').textContent = 'Mic offline (model load failed)';
             $('micBtn').disabled = true;
-            $('micBtn').title = 'Speech recognition not supported in this browser';
-            $('micHint').textContent = 'Speech not supported in this browser';
-            return;
+            $('micBtn').title = 'Whisper failed to load. Reload on a wifi connection.';
         }
-        recognition = new SR();
-        recognition.continuous     = true;
-        recognition.interimResults = true;
-        recognition.lang           = 'en-US';
-
-        recognition.onresult = (event) => {
-            const textInput = $('entryText');
-            if (!textInput) return;
-            let finalTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; i++) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript + ' ';
-                }
-            }
-            if (finalTranscript) {
-                const sep = textInput.value && !/\s$/.test(textInput.value) ? ' ' : '';
-                textInput.value = (textInput.value + sep + finalTranscript).replace(/\s+/g, ' ').trimStart();
-                usedVoiceThisEntry = true;
-                lastTranscriptAt = Date.now();
-                if (!inHandshake()) {
-                    setRecordingState('transcribing', 'transcribed');
-                }
-            }
-        };
-
-        recognition.onspeechstart = () => {
-            if (!inHandshake()) {
-                setRecordingState('live', 'speech detected');
-            }
-        };
-
-        recognition.onnomatch = () => {
-            if (!inHandshake()) {
-                setRecordingState('warn', 'could not understand');
-            }
-        };
-
-        recognition.onerror = (event) => {
-            console.error('Speech recognition error:', event.error);
-            if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                showToast('microphone permission denied', true);
-                stopRecording();
-                return;
-            }
-            if (event.error === 'no-speech') {
-                if (!inHandshake()) {
-                    setRecordingState('warn', 'no speech detected');
-                }
-                return; // recognizer will end; onend will restart it
-            }
-            if (event.error === 'aborted') {
-                return; // we stopped it on purpose
-            }
-            // network / generic — surface and let it auto-retry
-            if (!inHandshake()) {
-                setRecordingState('warn', 'recognition error - retrying');
-            }
-        };
-
-        recognition.onend = () => {
-            // The engine periodically stops itself. If we're still meant
-            // to be recording, restart it.
-            if (isRecording) {
-                recognitionRetries++;
-                if (recognitionRetries > 30) {
-                    setRecordingState('warn', 'recognition keeps dropping');
-                    return;
-                }
-                try { recognition.start(); } catch (_) { /* benign — already starting */ }
-            }
-        };
     }
 
     function toggleRecording() {
-        if (!recognition) {
-            showToast('speech not supported here', true);
+        if (!whisperLoaded) {
+            if (whisperLoadError) {
+                showToast('mic engine unavailable - reload on wifi', true);
+            } else {
+                showToast(`whisper still loading (${whisperLoadProgress}%)`, true);
+            }
             return;
         }
         if (isRecording) stopRecording();
@@ -1401,15 +1369,14 @@
         recordingStartedAt = Date.now();
         const connectingStartedAt = Date.now();
         lastSoundAt        = null;
-        lastTranscriptAt   = null;
         connectedAt        = null;
-        recognitionRetries = 0;
+        audioChunks        = [];
         $('micBtn').classList.add('recording');
-        $('micHint').textContent = 'Tap to disconnect';
+        $('micHint').textContent = 'Tap to stop and transcribe';
         activateRecordingPanel();
         setRecordingState('live', 'connecting...');
 
-        // 1) Get a mic stream we control, for the waveform + silence detect.
+        // 1) Get a mic stream we control, for the waveform AND for MediaRecorder.
         try {
             mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
@@ -1423,7 +1390,7 @@
             return;
         }
 
-        // If user tapped the mic again while we were waiting for permission
+        // If user tapped mic again while we were waiting for permission
         if (!isRecording) {
             mediaStream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
             mediaStream = null;
@@ -1444,16 +1411,22 @@
             // Non-fatal - recording continues without the waveform.
         }
 
-        // 3) Start the speech recognizer.
+        // 3) Start MediaRecorder to capture the actual audio for Whisper.
         try {
-            recognition.start();
+            mediaRecorder = new MediaRecorder(mediaStream);
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) audioChunks.push(e.data);
+            };
+            mediaRecorder.start();
         } catch (err) {
-            console.warn('recognition.start() threw:', err);
-            // Continue - the recognizer may already be starting.
+            console.error('MediaRecorder failed to start:', err);
+            showToast('cannot start recorder', true);
+            stopRecording();
+            return;
         }
 
-        // 4) Hold "connecting..." for a beat so the user actually sees it,
-        //    then flip to "connected" and let the normal state machine take over.
+        // 4) Hold "connecting..." for a beat so the user sees it,
+        //    then flip to "recording" and let the normal state take over.
         const elapsed = Date.now() - connectingStartedAt;
         const wait = Math.max(0, CONNECTING_MIN_MS - elapsed);
         if (wait > 0) {
@@ -1462,7 +1435,7 @@
         if (!isRecording) return; // user cancelled mid-handshake
 
         connectedAt = Date.now();
-        setRecordingState('live', 'connected');
+        setRecordingState('live', 'recording');
 
         // 5) Kick off the render + status loops.
         startWaveform();
@@ -1471,37 +1444,71 @@
         }
     }
 
-    function stopRecording() {
+    async function stopRecording() {
         if (!isRecording) return;
         isRecording = false;
 
-        // Stop the recognizer (onend will see isRecording=false and not restart)
-        try { recognition && recognition.stop(); } catch (_) { /* ignore */ }
-
-        // Stop the waveform render loop
+        // 1) Stop the waveform render loop and meta timer immediately.
         if (waveformAnimId) {
             cancelAnimationFrame(waveformAnimId);
             waveformAnimId = null;
         }
-
-        // Stop the meta timer
         if (recordingTimerId) {
             clearInterval(recordingTimerId);
             recordingTimerId = null;
         }
 
-        // Release the audio graph
+        // 2) Stop MediaRecorder and wait for the final audio chunk.
+        let audioBlob = null;
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            await new Promise((resolve) => {
+                mediaRecorder.onstop = () => {
+                    const mime = (mediaRecorder.mimeType) || 'audio/webm';
+                    audioBlob = new Blob(audioChunks, { type: mime });
+                    resolve();
+                };
+                try { mediaRecorder.stop(); } catch (_) { resolve(); }
+            });
+        }
+        mediaRecorder = null;
+
+        // 3) Release the audio graph + mic now that recording is done.
         if (audioContext) {
             try { audioContext.close(); } catch (_) { /* ignore */ }
             audioContext = null;
         }
         analyser = null;
-
-        // Release the mic
         if (mediaStream) {
             mediaStream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
             mediaStream = null;
         }
+
+        // 4) Run Whisper on the audio blob if we got one. UI stays in
+        //    "transcribing" state during this. Audio blob is discarded
+        //    after transcription - never written to disk or network.
+        if (audioBlob && audioBlob.size > 0) {
+            $('micBtn').classList.add('recording'); // keep visual cue during transcribe
+            $('micHint').textContent = 'Transcribing...';
+            setRecordingState('transcribing', 'transcribing...');
+            $('recordingTime').textContent = '...';
+            try {
+                const text = await whisperTranscribe(audioBlob);
+                if (text && text.trim()) {
+                    const ta = $('entryText');
+                    const sep = ta.value && !/\s$/.test(ta.value) ? ' ' : '';
+                    ta.value = (ta.value + sep + text.trim()).trimStart();
+                    usedVoiceThisEntry = true;
+                } else {
+                    showToast('no speech detected', true);
+                }
+            } catch (err) {
+                console.error('whisper transcribe failed:', err);
+                showToast('transcription failed - try again', true);
+            }
+        }
+        // Free the chunks regardless of success.
+        audioChunks = [];
+        audioBlob = null;
 
         // UI back to disconnected idle
         $('micBtn').classList.remove('recording');
@@ -1570,27 +1577,23 @@
         const elapsed = now - recordingStartedAt;
         $('recordingTime').textContent = fmtTime(elapsed);
 
+        // Hold "connected" for a beat after handshake.
         if (connectedAt && now - connectedAt < CONNECTED_HOLD_MS) {
             setRecordingState('live', 'connected');
             return;
         }
 
+        // After the handshake hold: simple state machine.
+        // Whisper transcribes on stop, so during recording we only show
+        // "recording", "speech detected" (recent sound), or "no audio detected"
+        // (silent for 3+ seconds since handshake settled).
         const sinceListening = connectedAt ? (now - (connectedAt + CONNECTED_HOLD_MS)) : elapsed;
-        const stateEl = $('recordingState');
-        if (stateEl.classList.contains('warn')) {
-            if (lastSoundAt && now - lastSoundAt < 800) {
-                setRecordingState('live', 'listening');
-            }
-            return;
-        }
-        if (lastTranscriptAt && now - lastTranscriptAt < 1500) {
-            setRecordingState('transcribing', 'transcribed');
-        } else if (lastSoundAt && now - lastSoundAt < 800) {
+        if (lastSoundAt && now - lastSoundAt < 800) {
             setRecordingState('live', 'speech detected');
         } else if (sinceListening > 3000 && (!lastSoundAt || now - lastSoundAt > 3000)) {
             setRecordingState('warn', 'no audio detected');
         } else {
-            setRecordingState('live', 'listening');
+            setRecordingState('live', 'recording');
         }
     }
 
@@ -1904,7 +1907,8 @@
             el.textContent = `v${APP_VERSION}`;
         });
         wireEvents();
-        initSpeechRecognition();
+        // Kick off the Whisper model load in the background. Idempotent.
+        initWhisper();
         initializeConnection();
     });
 
