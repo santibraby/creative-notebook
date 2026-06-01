@@ -1,0 +1,17 @@
+# Normalize line endings so saves don't produce whole-file CRLF diffs.
+# JSON/HTML/CSS/JS/MD are stored and checked out as LF; Windows batch and
+# PowerShell scripts require CRLF. Binaries are left untouched.
+#
+# After adding this file, run once to apply:  git add --renormalize .
+* text=auto eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.html text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
+*.png binary
+*.pdf binary
+*.jpg binary
+*.jpeg binary
