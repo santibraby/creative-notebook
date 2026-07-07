@@ -193,9 +193,12 @@
         }
 
         /* ================ APP SHELL: canvas + foreground panel ================ */
+        /* Row layout: floating canvas left, vertical tab rail on the right
+           edge of the grid canvas, anchored top. */
         #appScreen {
-            padding: 14px 12px calc(8px + env(safe-area-inset-bottom, 0px));
-            gap: 4px;
+            flex-direction: row;
+            padding: 14px calc(6px + env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) 14px;
+            gap: 6px;
         }
 
         /* The canvas: translucent frame over the grid (grid shows through),
@@ -203,6 +206,7 @@
            content scrolls internally. */
         .fg-panel {
             flex: 1;
+            min-width: 0;
             min-height: 0;
             display: flex;
             flex-direction: column;
@@ -210,7 +214,7 @@
             border: 1px solid var(--line);
             border-radius: 10px;
             box-shadow: var(--canvas-shadow);
-            padding: 16px 14px 14px;
+            padding: 20px 18px 18px;
         }
 
         .app-top {
@@ -225,45 +229,53 @@
         .app-brand .ver { color: var(--faint); letter-spacing: 0.12em; margin-left: 6px; }
         .app-meta { font-size: 10px; letter-spacing: 0.16em; color: var(--dim); text-transform: uppercase; text-align: right; }
 
-        /* ================ TAB BAR (on the canvas) ================ */
+        /* ================ TAB RAIL (icon tools, right edge, top) ================ */
         .tabbar {
             flex-shrink: 0;
+            width: 40px;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
+            justify-content: flex-start;
             align-items: center;
-            padding: 10px 18px 6px;
+            gap: 14px;
+            padding: 44px 0 0; /* dropped by ~one icon slot for reach */
         }
         .tab {
+            position: relative;
+            width: 34px;
+            height: 34px;
             background: none;
-            border: none;
-            padding: 6px 2px;
-            font-size: 10px;
-            letter-spacing: 0.16em;
-            color: var(--faint);
-            text-transform: uppercase;
-            cursor: pointer;
+            border: 1px solid transparent;
+            border-radius: var(--radius);
+            padding: 0;
             display: flex;
             align-items: center;
-            gap: 6px;
-            transition: color 150ms ease;
+            justify-content: center;
+            color: var(--faint);
+            cursor: pointer;
+            transition: color 150ms ease, border-color 150ms ease;
         }
         .tab:hover { color: var(--dim); }
-        .tab.active { color: var(--peach-25); }
+        .tab.active { color: var(--peach-25); border-color: var(--peach-25); }
+        .tab svg { width: 17px; height: 17px; display: block; }
         .tab-badge {
             display: none;
-            min-width: 16px;
-            height: 16px;
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            min-width: 15px;
+            height: 15px;
             padding: 0 4px;
             border-radius: 8px;
             background: var(--peach-100);
             color: #0a0a0a;
             font-size: 9px;
             font-weight: 500;
-            line-height: 16px;
+            line-height: 15px;
             letter-spacing: 0;
             text-align: center;
         }
-        .tab-badge.on { display: inline-block; }
+        .tab-badge.on { display: block; }
 
         /* ================ PANELS ================ */
         .panel { display: none; flex: 1; min-height: 0; flex-direction: column; }
@@ -537,11 +549,14 @@
         }
 
         /* ================ TOAST ================ */
+        /* Fully invisible when hidden - no sliver may peek at the top. */
         .toast {
             position: fixed;
             top: 24px;
             left: 50%;
-            transform: translate(-50%, -150%);
+            transform: translate(-50%, -200%);
+            visibility: hidden;
+            opacity: 0;
             background: var(--panel);
             border: 1px solid var(--peach-50);
             border-radius: var(--radius);
@@ -550,36 +565,19 @@
             letter-spacing: 0.18em;
             text-transform: uppercase;
             padding: 12px 22px;
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease, visibility 0.3s;
             z-index: 500;
             white-space: nowrap;
             box-shadow: var(--shadow);
         }
-        .toast.show { transform: translate(-50%, 0); }
+        .toast.show { transform: translate(-50%, 0); visibility: visible; opacity: 1; }
         .toast.error { color: var(--peach-100); border-color: var(--peach-100); }
-
-        /* ================ RESET LINK ================ */
-        .reset-link {
-            position: fixed;
-            bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-            right: 12px;
-            font-size: 9px;
-            letter-spacing: 0.18em;
-            color: var(--faint);
-            text-transform: uppercase;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s ease, color 0.2s ease;
-            z-index: 50;
-        }
-        .reset-link.visible { opacity: 1; }
-        .reset-link:hover { color: var(--peach-25); }
 
         /* compact type on small screens (matches the article pages) */
         @media (max-width: 600px) {
-            #appScreen { padding: 10px 10px calc(6px + env(safe-area-inset-bottom, 0px)); }
-            .fg-panel { padding: 14px 12px 12px; }
-            .tabbar { padding: 10px 14px 4px; }
+            #appScreen { padding: 10px calc(4px + env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) 10px; }
+            .fg-panel { padding: 18px 14px 16px; }
+            .tabbar { width: 38px; gap: 12px; padding: 40px 0 0; }
             #entryText { font-size: 16px; line-height: 1.65; }
             #noteEditText { font-size: 16px; line-height: 1.7; }
             .login-panel h1 { font-size: 30px; }
@@ -673,11 +671,32 @@
             </div>
         </div>
 
-        <!-- TAB BAR on the canvas -->
+        <!-- TAB RAIL on the canvas, right edge, top-anchored -->
         <div class="tabbar">
-            <button class="tab active" data-tab="capture">Capture</button>
-            <button class="tab" data-tab="notes">Notes</button>
-            <button class="tab" data-tab="week">Week <span class="tab-badge" id="weekBadge"></span></button>
+            <button class="tab active" data-tab="capture" aria-label="Capture" title="Capture">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16v4"/>
+                    <path d="M13.5 6.5l4 4"/>
+                </svg>
+            </button>
+            <button class="tab" data-tab="notes" aria-label="Notes" title="Notes">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M13 20l7-7"/>
+                    <path d="M13 20v-6a1 1 0 0 1 1-1h6V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7"/>
+                </svg>
+            </button>
+            <button class="tab" data-tab="week" aria-label="Week" title="Week">
+                <span class="tab-badge" id="weekBadge"></span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z"/>
+                    <path d="M16 3v4"/>
+                    <path d="M8 3v4"/>
+                    <path d="M4 11h16"/>
+                </svg>
+            </button>
         </div>
     </div>
 
@@ -716,9 +735,8 @@
         </div>
     </div>
 
-    <!-- Toast & reset link -->
+    <!-- Toast -->
     <div id="toast" class="toast"></div>
-    <div id="resetLink" class="reset-link">reset connection</div>
 
     <script type="module">
     'use strict';
@@ -735,7 +753,7 @@
     // ============================================
     // App version. Bumped automatically by finish.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '3.0.1';
+    const APP_VERSION = '3.0.2';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
@@ -1033,7 +1051,6 @@
             setPatStatus('connecting...');
             await loadEverything();
             localStorage.setItem(PAT_STORAGE_KEY, token);
-            $('resetLink').classList.add('visible');
             renderAll();
             showScreen('appScreen');
             setPatStatus('');
@@ -1050,13 +1067,12 @@
         }
     }
 
+    // No UI entry point anymore - invoked automatically on AUTH errors.
     function resetConnection() {
-        if (!confirm('Reset connection? This wipes the saved token from this device. Your data on GitHub is untouched.')) return;
         localStorage.removeItem(PAT_STORAGE_KEY);
         githubToken = null;
         yearData = {}; yearShas = {};
         jsonCache = {}; jsonShas = {};
-        $('resetLink').classList.remove('visible');
         showScreen('loginScreen');
         $('patInput').focus();
     }
@@ -1891,7 +1907,6 @@
 
         $('saveBtn').addEventListener('click', submitEntry);
         $('micBtn').addEventListener('click', toggleRecording);
-        $('resetLink').addEventListener('click', resetConnection);
 
         $('catSelect').addEventListener('change', (e) => {
             if (e.target.value === NEW_BUCKET) handleNewBucket(e.target, '');
