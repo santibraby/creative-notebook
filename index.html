@@ -297,6 +297,7 @@
             display: flex;
             flex-direction: column;
         }
+        .capture-group .app-top { margin-bottom: 28px; }
         /* Santi's words read in serif italic (the article body voice);
            all chrome stays mono. */
         #entryText {
@@ -627,14 +628,13 @@
          ============================================ -->
     <div id="appScreen" class="screen">
         <div class="fg-panel">
-            <div class="app-top">
-                <div class="app-brand">FRC<span class="ver" data-version></span></div>
-                <div class="app-meta" id="topMeta"></div>
-            </div>
-
             <!-- CAPTURE -->
             <div id="capturePanel" class="panel active">
                 <div class="capture-group">
+                <div class="app-top">
+                    <div class="app-brand">FRC<span class="ver" data-version></span></div>
+                    <div class="app-meta" data-meta="date"></div>
+                </div>
                 <textarea id="entryText" class="frc-input"
                           placeholder="type here, or tap the microphone to dictate..."></textarea>
                 <div id="recordingPanel" class="recording-panel">
@@ -667,12 +667,20 @@
 
             <!-- NOTES -->
             <div id="notesPanel" class="panel">
+                <div class="app-top">
+                    <div class="app-brand">FRC<span class="ver" data-version></span></div>
+                    <div class="app-meta" data-meta="count"></div>
+                </div>
                 <div class="chip-row" id="chipRow"></div>
                 <div class="sheet" id="notesList"></div>
             </div>
 
             <!-- WEEK -->
             <div id="weekPanel" class="panel">
+                <div class="app-top">
+                    <div class="app-brand">FRC<span class="ver" data-version></span></div>
+                    <div class="app-meta" data-meta="date"></div>
+                </div>
                 <div class="week-scroll">
                     <div class="label" style="margin-bottom:4px;">This week</div>
                     <div id="taskList"></div>
@@ -772,7 +780,7 @@
     // ============================================
     // App version. Bumped automatically by finish.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '3.0.3';
+    const APP_VERSION = '3.0.4';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
@@ -1140,14 +1148,13 @@
         if (tabName === 'capture') setTimeout(() => $('entryText').focus(), 60);
     }
 
+    // Each panel carries its own header now; data-meta says what it shows.
     function renderTopMeta() {
-        const el = $('topMeta');
-        if (activeTab === 'notes') {
-            const n = allNotes().length;
-            el.textContent = n === 1 ? '1 entry' : `${n} entries`;
-        } else {
-            el.textContent = nowMeta();
-        }
+        const n = allNotes().length;
+        const count = n === 1 ? '1 entry' : `${n} entries`;
+        document.querySelectorAll('[data-meta]').forEach(el => {
+            el.textContent = el.dataset.meta === 'count' ? count : nowMeta();
+        });
     }
 
     // Fill both category <select>s from config.
