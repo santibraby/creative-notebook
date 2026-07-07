@@ -238,26 +238,25 @@
             justify-content: flex-start;
             align-items: center;
             gap: 14px;
-            padding: 44px 0 0; /* dropped by ~one icon slot for reach */
+            padding: 160px 0 0; /* dropped ~4 icon slots down the rail for reach */
         }
         .tab {
             position: relative;
-            width: 34px;
-            height: 34px;
+            width: 38px;
+            height: 38px;
             background: none;
-            border: 1px solid transparent;
-            border-radius: var(--radius);
+            border: none;
             padding: 0;
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--faint);
             cursor: pointer;
-            transition: color 150ms ease, border-color 150ms ease;
+            transition: color 150ms ease;
         }
         .tab:hover { color: var(--dim); }
-        .tab.active { color: var(--peach-25); border-color: var(--peach-25); }
-        .tab svg { width: 17px; height: 17px; display: block; }
+        .tab.active { color: var(--peach-25); }
+        .tab svg { width: 21px; height: 21px; display: block; }
         .tab-badge {
             display: none;
             position: absolute;
@@ -605,7 +604,7 @@
         @media (max-width: 600px) {
             #appScreen { padding: 10px calc(4px + env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) 10px; }
             .fg-panel { padding: 18px 14px 16px; }
-            .tabbar { width: 38px; gap: 12px; padding: 40px 0 0; }
+            .tabbar { width: 38px; gap: 12px; padding: 150px 0 0; }
             #capturePanel { padding: 24px 0 32px; }
             #notesPanel, #weekPanel { padding: 24px 0 30px; }
             #entryText { font-size: 16px; line-height: 1.65; }
@@ -792,7 +791,7 @@
     // ============================================
     // App version. Bumped automatically by finish.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '3.0.5';
+    const APP_VERSION = '3.0.6';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
