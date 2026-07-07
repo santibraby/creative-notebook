@@ -8,23 +8,41 @@
     <title>Creative Notebook</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap">
     <style>
+        /* ============================================================
+           FRC TOOL STYLE - Creative Notebook v3
+           Two-layer composition: grid canvas behind, raised foreground
+           panel with drop shadow in front, tab bar on the canvas.
+           ============================================================ */
         :root {
-            --color-black:        #111111;
-            --color-charcoal:     #1a1a1a;
-            --color-cream:        #d4c4b5;
-            --color-white:        #e8e0d8;
-            --color-border:       #2a2a2a;
-            --color-border-light: #1f1f1f;
-            --color-text-1:       #bbbbbb;
-            --color-text-2:       #999999;
-            --color-text-3:       #888888;
-            --color-text-4:       #666666;
-            --color-highlight-bg: #1a1816;
-            --color-highlight-border: #2a2520;
-            --font-serif: 'Cormorant Garamond', Georgia, serif;
-            --font-sans:  'Inter', 'Helvetica Neue', sans-serif;
+            --peach-100: #F05300;
+            --peach-75:  #F07A3C;
+            --peach-50:  #F0A178;
+            --peach-25:  #F0C9B4;
+            --grey-0:    #F0F0F0;
+
+            --bg:        #111111;
+            --panel:     #171614;
+            --line:      #29251f;
+
+            --ink:       var(--grey-0);
+            --dim:       rgba(240, 240, 240, 0.5);
+            --faint:     rgba(240, 240, 240, 0.35);
+            --ph:        rgba(240, 240, 240, 0.28);
+
+            --grid-size: 32px;
+            --grid-line: rgba(240, 201, 180, 0.05);
+
+            --mono: "JetBrains Mono", "Cascadia Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            --serif: Georgia, "Times New Roman", serif;
+
+            --radius: 3px;
+            --radius-panel: 8px;
+            --shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+
+            --canvas-bg: rgba(17, 17, 17, 0.6);
+            --canvas-shadow: 0 10px 44px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.4);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -32,668 +50,522 @@
         html, body {
             width: 100%;
             height: 100%;
-            background: var(--color-black);
-            color: var(--color-white);
-            font-family: var(--font-sans);
-            font-weight: 300;
-            line-height: 1.6;
             overflow: hidden;
+            background-color: var(--bg);
+            background-image:
+                linear-gradient(var(--grid-line) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+            background-size: var(--grid-size) var(--grid-size);
+            color: var(--ink);
+            font-family: var(--mono);
+            font-size: 13px;
+            line-height: 1.6;
             -webkit-font-smoothing: antialiased;
         }
 
-        button, input, textarea {
-            font-family: inherit;
-            color: inherit;
-        }
+        button, input, textarea, select { font-family: inherit; color: inherit; }
+        a { color: var(--peach-50); text-decoration: none; }
+        a:hover { color: var(--peach-25); }
 
-        a { color: var(--color-cream); text-decoration: none; }
+        ::selection { background: rgba(240, 161, 120, 0.35); }
+        * { scrollbar-width: thin; scrollbar-color: #2e2a25 transparent; }
+        *::-webkit-scrollbar { width: 8px; }
+        *::-webkit-scrollbar-thumb { background: #2e2a25; border-radius: 4px; }
+        *::-webkit-scrollbar-track { background: transparent; }
 
         /* ================ SCREENS ================ */
-        .screen {
-            position: fixed;
-            inset: 0;
-            display: none;
-            flex-direction: column;
-            padding: 48px 32px;
-        }
+        .screen { position: fixed; inset: 0; display: none; flex-direction: column; }
         .screen.active { display: flex; }
 
-        /* ================ LOGO / WORDMARK ================ */
-        .logo-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            line-height: 1;
-        }
-
-        .version {
-            font-family: var(--font-sans);
-            font-size: 9px;
-            font-weight: 400;
-            letter-spacing: 1.5px;
-            color: var(--color-text-4);
-            text-transform: uppercase;
-        }
-
-        .logo {
-            font-family: var(--font-sans);
-            font-size: 14px;
-            font-weight: 400;
-            letter-spacing: 3px;
-            color: var(--color-cream);
-            text-transform: uppercase;
-        }
-
-        .meta {
-            font-family: var(--font-sans);
-            font-size: 12px;
-            font-weight: 300;
-            letter-spacing: 2px;
-            color: var(--color-text-4);
-            text-transform: uppercase;
-        }
-
         .label {
-            font-family: var(--font-sans);
-            font-size: 10px;
-            font-weight: 400;
-            letter-spacing: 2px;
-            color: var(--color-text-4);
+            font-size: 9px;
+            letter-spacing: 0.24em;
+            color: var(--dim);
             text-transform: uppercase;
         }
-        .label-cream {
-            color: var(--color-cream);
-        }
 
-        /* ================ LOGIN SCREEN ================ */
-        #loginScreen {
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-        }
+        /* ================ LOGIN ================ */
+        #loginScreen { align-items: center; justify-content: center; padding: 24px; }
 
-        #loginScreen .logo { margin-bottom: 64px; }
-
-        #loginScreen h1 {
-            font-family: var(--font-serif);
-            font-size: 56px;
-            font-weight: 400;
-            line-height: 1.1;
-            letter-spacing: 1px;
-            color: var(--color-cream);
-            margin-bottom: 16px;
-        }
-
-        #loginScreen .tagline {
-            font-family: var(--font-serif);
-            font-style: italic;
-            font-size: 22px;
-            color: var(--color-text-2);
-            margin-bottom: 64px;
-            line-height: 1.4;
-        }
-
-        .pat-form {
-            width: 100%;
-            max-width: 480px;
+        .login-panel {
+            width: min(420px, 100%);
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 14px;
+            padding: 22px 20px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-panel);
+            box-shadow: var(--shadow);
         }
-
-        .pat-input {
-            width: 100%;
-            background: transparent;
-            border: 1px solid var(--color-border);
-            color: var(--color-white);
-            font-family: var(--font-sans);
-            font-size: 14px;
-            font-weight: 300;
-            padding: 16px 20px;
-            outline: none;
-            transition: border-color 0.2s ease;
-        }
-        .pat-input::placeholder {
-            color: var(--color-text-4);
-            letter-spacing: 1px;
-        }
-        .pat-input:focus { border-color: var(--color-cream); }
-
-        .btn {
-            background: transparent;
-            border: 1px solid var(--color-cream);
-            color: var(--color-cream);
-            font-family: var(--font-sans);
-            font-size: 11px;
-            font-weight: 400;
-            letter-spacing: 2px;
+        .login-panel .kicker {
+            font-size: 10px;
+            letter-spacing: 0.24em;
+            color: var(--dim);
             text-transform: uppercase;
-            padding: 16px 32px;
+        }
+        .login-panel h1 {
+            font-family: var(--serif);
+            font-style: italic;
+            font-weight: 400;
+            font-size: 34px;
+            line-height: 1.1;
+            color: var(--ink);
+            margin-top: -6px;
+        }
+        .pat-hint { font-size: 10px; letter-spacing: 0.04em; color: var(--faint); line-height: 1.7; }
+        .pat-status { font-size: 10px; letter-spacing: 0.12em; color: var(--dim); min-height: 16px; text-transform: uppercase; }
+        .pat-status.error { color: var(--peach-100); }
+
+        /* ================ CONTROLS ================ */
+        .frc-btn {
+            position: relative;
+            width: 100%;
+            padding: 13px 12px;
+            background: transparent;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            color: var(--peach-25);
+            font-size: 10px;
+            letter-spacing: 0.14em;
+            text-align: center;
+            text-transform: uppercase;
             cursor: pointer;
-            transition: background 0.2s ease, color 0.2s ease;
+            transition: background 150ms ease, color 150ms ease;
         }
-        .btn:hover { background: var(--color-cream); color: var(--color-black); }
-        .btn:disabled { opacity: 0.5; cursor: wait; }
+        .frc-btn:hover { background: var(--peach-50); color: #0a0a0a; }
+        .frc-btn:disabled { opacity: 0.35; cursor: default; background: transparent; color: var(--peach-25); }
 
-        .btn-quiet {
-            border-color: var(--color-border);
-            color: var(--color-text-3);
+        .frc-btn--primary {
+            background: var(--peach-100);
+            border-color: var(--peach-100);
+            color: #0a0a0a;
+            font-weight: 500;
+            letter-spacing: 0.16em;
         }
-        .btn-quiet:hover { background: transparent; color: var(--color-cream); border-color: var(--color-cream); }
+        .frc-btn--primary:hover { background: var(--peach-75); border-color: var(--peach-75); color: #0a0a0a; }
+        .frc-btn--primary:disabled { background: var(--peach-100); border-color: var(--peach-100); color: #0a0a0a; }
 
-        .pat-status {
-            font-family: var(--font-sans);
-            font-size: 12px;
-            font-weight: 300;
-            color: var(--color-text-3);
-            min-height: 18px;
-            letter-spacing: 1px;
-            margin-top: 8px;
-        }
-        .pat-status.error { color: #c44; }
+        .frc-btn--dashed { border-style: dashed; }
+        .frc-btn--dashed:hover { background: transparent; border-color: var(--peach-50); color: var(--peach-50); }
 
-        .pat-hint {
-            font-family: var(--font-sans);
-            font-size: 12px;
-            color: var(--color-text-4);
-            margin-top: 32px;
+        .frc-btn--danger:hover { background: var(--peach-100); border-color: var(--peach-100); color: #0a0a0a; }
+
+        .frc-input {
+            width: 100%;
+            padding: 12px;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            color: var(--ink);
+            font-size: 13px;
             line-height: 1.6;
-            max-width: 480px;
+            outline: none;
         }
-        .pat-hint a { border-bottom: 1px solid var(--color-border); }
-        .pat-hint a:hover { border-color: var(--color-cream); }
+        .frc-input::placeholder { color: var(--ph); font-style: italic; letter-spacing: 0.04em; }
+        .frc-input:focus { border-color: var(--peach-50); }
+        [contenteditable="true"], textarea { caret-color: var(--peach-50); }
 
-        /* ================ HOME SCREEN ================ */
-        #homeScreen {
-            justify-content: flex-start;
-            align-items: stretch;
+        .frc-select {
+            width: 100%;
+            padding: 13px 12px;
+            appearance: none;
+            -webkit-appearance: none;
+            background: transparent;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            color: var(--peach-25);
+            font-size: 10px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+        .frc-select:hover { border-color: var(--peach-50); }
+        .frc-select:focus { outline: none; border-color: var(--peach-50); }
+        .frc-select option { background: var(--panel); color: var(--peach-25); text-transform: none; }
+
+        .frc-row2 { display: flex; gap: 8px; }
+        .frc-row2 > * { flex: 1; width: auto; }
+
+        .frc-btn:focus-visible, .frc-select:focus-visible {
+            outline: 1px dotted var(--peach-50);
+            outline-offset: 2px;
         }
 
-        .home-top {
+        /* ================ APP SHELL: canvas + foreground panel ================ */
+        #appScreen {
+            padding: 14px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+            gap: 4px;
+        }
+
+        /* The canvas: translucent frame over the grid (grid shows through),
+           hairline border, deep double shadow. The frame stays put -
+           content scrolls internally. */
+        .fg-panel {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: var(--canvas-bg);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            box-shadow: var(--canvas-shadow);
+            padding: 16px 14px 14px;
+        }
+
+        .app-top {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
-            width: 100%;
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-
-        .home-top-left {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .home-top-right {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 6px;
-            text-align: right;
-        }
-
-        .home-top-right .meta-count {
-            font-family: var(--font-sans);
-            font-size: 11px;
-            font-weight: 300;
-            letter-spacing: 2px;
-            color: var(--color-text-3);
-            text-transform: uppercase;
-        }
-
-        .play-btn {
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: transparent;
-            border: 1px solid var(--color-cream);
-            color: var(--color-cream);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s ease, transform 0.15s ease;
-            padding: 0;
-            margin-top: 4px;
-        }
-        .play-btn:hover { background: var(--color-cream); color: var(--color-black); }
-        .play-btn:active { transform: scale(0.96); }
-        .play-btn svg {
-            width: 18px;
-            height: 18px;
-            display: block;
-            margin-left: 2px; /* optical centering of play triangle */
-        }
-
-        /* ================ TABS ================ */
-        .tabs {
-            display: flex;
-            gap: 24px;
-            border-bottom: 1px solid var(--color-border-light);
-            margin-bottom: 24px;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 14px;
             flex-shrink: 0;
+        }
+        .app-brand { font-size: 10px; letter-spacing: 0.24em; color: var(--peach-25); text-transform: uppercase; }
+        .app-brand .ver { color: var(--faint); letter-spacing: 0.12em; margin-left: 6px; }
+        .app-meta { font-size: 10px; letter-spacing: 0.16em; color: var(--dim); text-transform: uppercase; text-align: right; }
+
+        /* ================ TAB BAR (on the canvas) ================ */
+        .tabbar {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 18px 6px;
         }
         .tab {
             background: none;
             border: none;
-            padding: 8px 0;
-            font-family: var(--font-sans);
-            font-size: 11px;
-            font-weight: 400;
-            letter-spacing: 2px;
-            color: var(--color-text-4);
+            padding: 6px 2px;
+            font-size: 10px;
+            letter-spacing: 0.16em;
+            color: var(--faint);
             text-transform: uppercase;
             cursor: pointer;
-            position: relative;
-            transition: color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 150ms ease;
         }
-        .tab:hover { color: var(--color-text-1); }
-        .tab.active { color: var(--color-cream); }
-        .tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: -1px; left: 0; right: 0;
-            height: 1px;
-            background: var(--color-cream);
-        }
-
-        .panel {
+        .tab:hover { color: var(--dim); }
+        .tab.active { color: var(--peach-25); }
+        .tab-badge {
             display: none;
-            flex: 1;
-            min-height: 0;
-            flex-direction: column;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            border-radius: 8px;
+            background: var(--peach-100);
+            color: #0a0a0a;
+            font-size: 9px;
+            font-weight: 500;
+            line-height: 16px;
+            letter-spacing: 0;
+            text-align: center;
         }
+        .tab-badge.on { display: inline-block; }
+
+        /* ================ PANELS ================ */
+        .panel { display: none; flex: 1; min-height: 0; flex-direction: column; }
         .panel.active { display: flex; }
 
-        /* ================ HOME SUMMARY ================ */
-        .home-summary {
+        /* ================ CAPTURE ================ */
+        /* Santi's words read in serif italic (the article body voice);
+           all chrome stays mono. */
+        #entryText {
             flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 36px;
-            padding-right: 8px;
-        }
-        .home-summary::-webkit-scrollbar { width: 4px; }
-        .home-summary::-webkit-scrollbar-thumb { background: var(--color-border); }
-
-        /* ================ LIST PANELS (Network / Brands / Studios) ================ */
-        .list-panel {
-            flex: 1;
-            min-height: 0;
-            overflow-y: auto;
-            padding-right: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 32px;
-        }
-        .list-panel::-webkit-scrollbar { width: 4px; }
-        .list-panel::-webkit-scrollbar-thumb { background: var(--color-border); }
-
-        .list-section {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .list-section-title {
-            font-family: var(--font-sans);
-            font-size: 10px;
-            font-weight: 400;
-            letter-spacing: 2px;
-            color: var(--color-text-4);
-            text-transform: uppercase;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--color-border-light);
-            margin-bottom: 8px;
-        }
-
-        .list-item {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            padding: 14px 0;
-            border-bottom: 1px solid var(--color-border-light);
-        }
-        .list-item:last-child { border-bottom: none; }
-
-        .list-item-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
-        }
-        .list-item-name {
-            font-family: var(--font-sans);
-            font-size: 16px;
-            font-weight: 400;
-            color: var(--color-white);
-            flex: 1;
-        }
-        .list-item-status {
-            font-family: var(--font-sans);
-            font-size: 9px;
-            font-weight: 400;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            padding: 4px 10px;
-            border: 1px solid var(--color-border);
-            color: var(--color-text-3);
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
-        .list-item-status.called  { color: var(--color-cream); border-color: var(--color-cream); }
-        .list-item-status.warm    { color: var(--color-cream); border-color: var(--color-cream); background: var(--color-highlight-bg); }
-        .list-item-status.high    { color: var(--color-cream); border-color: var(--color-cream); }
-        .list-item-context {
-            font-family: var(--font-sans);
-            font-size: 12px;
-            font-weight: 300;
-            color: var(--color-text-3);
-            line-height: 1.5;
-        }
-        .list-item-meta {
-            font-family: var(--font-sans);
-            font-size: 10px;
-            font-weight: 300;
-            color: var(--color-text-4);
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-top: 2px;
-        }
-
-        .summary-section {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
-
-        .summary-section .summary-section-title {
-            font-family: var(--font-sans);
-            font-size: 10px;
-            font-weight: 400;
-            letter-spacing: 2px;
-            color: var(--color-text-4);
-            text-transform: uppercase;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--color-border-light);
-        }
-
-        .summary-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            padding: 0;
-            margin: 0;
-        }
-
-        .summary-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding-left: 16px;
-            position: relative;
-        }
-        .summary-item::before {
-            content: '-';
-            position: absolute;
-            left: 0;
-            top: 0;
-            color: var(--color-text-3);
-        }
-
-        .summary-text {
-            font-family: var(--font-sans);
-            font-size: 16px;
-            font-weight: 300;
-            line-height: 1.5;
-            color: var(--color-white);
-        }
-
-        .summary-note {
-            font-family: var(--font-sans);
-            font-size: 12px;
-            font-weight: 300;
-            line-height: 1.5;
-            color: var(--color-text-3);
-            font-style: italic;
-        }
-
-        .summary-empty {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            padding: 32px 0;
-            border-top: 1px solid var(--color-border-light);
-        }
-        .summary-empty-title {
-            font-family: var(--font-serif);
-            font-size: 24px;
-            font-weight: 400;
-            color: var(--color-cream);
-            line-height: 1.3;
-        }
-        .summary-empty-text {
-            font-family: var(--font-sans);
-            font-size: 14px;
-            font-weight: 300;
-            color: var(--color-text-2);
-            max-width: 440px;
-            line-height: 1.6;
-        }
-
-        .home-summary-meta {
-            font-family: var(--font-sans);
-            font-size: 10px;
-            font-weight: 300;
-            letter-spacing: 1.5px;
-            color: var(--color-text-4);
-            text-transform: uppercase;
-            margin-top: 24px;
-            padding-top: 16px;
-            border-top: 1px solid var(--color-border-light);
-        }
-        .home-summary-meta:empty { display: none; }
-
-        /* ================ ENTRY SCREEN ================ */
-        #entryScreen {
-            justify-content: flex-start;
-        }
-
-        .entry-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 32px;
-        }
-
-        .entry-section {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            flex: 1;
-            min-height: 0;
-        }
-        .entry-section h2 {
-            font-family: var(--font-serif);
-            font-size: 36px;
-            font-weight: 400;
-            color: var(--color-cream);
-            line-height: 1.2;
-        }
-
-        .entry-textarea {
-            flex: 1;
-            background: transparent;
-            border: 1px solid var(--color-border);
-            color: var(--color-white);
-            font-family: var(--font-sans);
-            font-size: 18px;
-            font-weight: 300;
-            line-height: 1.6;
-            padding: 24px;
-            outline: none;
+            min-height: 120px;
             resize: none;
-            min-height: 200px;
-            transition: border-color 0.2s ease;
-        }
-        .entry-textarea::placeholder {
-            color: var(--color-text-4);
+            font-family: var(--serif);
             font-style: italic;
+            font-size: 17px;
+            line-height: 1.7;
         }
-        .entry-textarea:focus { border-color: var(--color-cream); }
-
-        .entry-controls {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
+        #entryText::placeholder { font-family: var(--serif); }
+        .capture-controls { display: flex; gap: 8px; margin-top: 10px; flex-shrink: 0; }
         .mic-btn {
+            width: 46px;
+            height: 46px;
+            flex-shrink: 0;
             background: transparent;
-            border: 1px solid var(--color-border);
-            color: var(--color-text-1);
-            width: 56px;
-            height: 56px;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            color: var(--peach-25);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.2s ease;
-            flex-shrink: 0;
+            transition: all 150ms ease;
             padding: 0;
         }
-        .mic-btn:hover {
-            border-color: var(--color-cream);
-            color: var(--color-cream);
-        }
-        .mic-btn svg { width: 22px; height: 22px; }
+        .mic-btn:hover { border-color: var(--peach-50); color: var(--peach-50); }
+        .mic-btn svg { width: 20px; height: 20px; }
         .mic-btn.recording {
-            background: var(--color-cream);
-            color: var(--color-black);
-            border-color: var(--color-cream);
+            background: var(--peach-100);
+            border-color: var(--peach-100);
+            color: #0a0a0a;
             animation: pulse 1.4s ease-in-out infinite;
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.65; }
-        }
-        .mic-btn:disabled {
-            opacity: 0.35;
-            cursor: not-allowed;
-        }
-
-        .mic-hint {
-            font-family: var(--font-sans);
-            font-size: 11px;
-            letter-spacing: 2px;
-            color: var(--color-text-4);
-            text-transform: uppercase;
-            margin-left: 4px;
-            flex: 1;
-        }
-
-        .entry-actions {
-            display: flex;
-            gap: 12px;
-        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        .mic-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        #catSelect { flex: 1; height: 46px; }
+        .save-row { margin-top: 8px; flex-shrink: 0; }
+        .save-row .frc-btn { padding: 14px 12px; }
 
         /* ================ RECORDING PANEL ================ */
         .recording-panel {
             display: flex;
-            margin-top: 16px;
-            padding: 16px 20px;
-            background: var(--color-charcoal);
-            border: 1px solid var(--color-border-light);
             flex-direction: column;
-            gap: 12px;
-            transition: background 0.25s ease, border-color 0.25s ease;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 10px 12px;
+            background: var(--bg);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            flex-shrink: 0;
+            transition: border-color 250ms ease;
         }
-        .recording-panel.active {
-            background: var(--color-highlight-bg);
-            border-color: var(--color-highlight-border);
-        }
-
-        .waveform {
-            width: 100%;
-            height: 48px;
-            display: block;
-        }
-
+        .recording-panel.active { border-color: var(--peach-50); }
+        .waveform { width: 100%; height: 36px; display: block; }
         .recording-meta {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-family: var(--font-sans);
-            font-size: 11px;
-            font-weight: 400;
-            letter-spacing: 2px;
+            font-size: 9px;
+            letter-spacing: 0.2em;
             text-transform: uppercase;
         }
+        .recording-state { color: var(--faint); display: flex; align-items: center; gap: 8px; }
+        .recording-state .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); display: inline-block; }
+        .recording-state.live { color: var(--peach-50); }
+        .recording-state.live .dot { background: var(--peach-50); animation: pulse 1.4s ease-in-out infinite; }
+        .recording-state.warn { color: var(--peach-100); }
+        .recording-state.warn .dot { background: var(--peach-100); }
+        .recording-state.transcribing { color: var(--peach-25); }
+        .recording-state.transcribing .dot { background: var(--peach-25); animation: pulse 1s ease-in-out infinite; }
+        .recording-time { color: var(--dim); font-variant-numeric: tabular-nums; }
+        .recording-time.warn { color: var(--peach-100); }
 
-        .recording-state {
-            color: var(--color-text-3);
+        /* ================ NOTES ================ */
+        .chip-row {
             display: flex;
-            align-items: center;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 12px;
+            flex-shrink: 0;
+        }
+        .chip {
+            background: transparent;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            color: var(--dim);
+            font-size: 9px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 5px 9px;
+            cursor: pointer;
+            transition: all 150ms ease;
+        }
+        .chip:hover { color: var(--peach-25); border-color: var(--peach-50); }
+        .chip.active { background: var(--peach-50); border-color: var(--peach-50); color: #0a0a0a; }
+        .chip--new { border-style: dashed; color: var(--peach-25); }
+
+        .sheet {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            background: var(--line);
+        }
+        .sheet-row {
+            background: var(--bg);
+            padding: 11px 12px;
+            cursor: pointer;
+            transition: background 150ms ease;
+        }
+        .sheet-row + .sheet-row { margin-top: 1px; }
+        .sheet-row:hover { background: var(--panel); }
+        .sheet-row-meta {
+            font-size: 9px;
+            letter-spacing: 0.16em;
+            color: var(--dim);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
             gap: 8px;
         }
-        .recording-state .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--color-text-4);
-            display: inline-block;
+        .sheet-row-meta .cat { color: var(--peach-50); }
+        .sheet-row-text {
+            font-family: var(--serif);
+            font-style: italic;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--ink);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-word;
         }
-        .recording-state.live { color: var(--color-cream); }
-        .recording-state.live .dot {
-            background: var(--color-cream);
-            animation: pulse 1.4s ease-in-out infinite;
-        }
-        .recording-state.warn { color: #c44; }
-        .recording-state.warn .dot { background: #c44; }
-        .recording-state.transcribing { color: var(--color-cream); }
-        .recording-state.transcribing .dot { background: var(--color-cream); }
+        .sheet-empty { background: var(--bg); padding: 28px 16px; text-align: center; }
+        .sheet-empty .frc-note { margin: 0; font-size: 10px; letter-spacing: 0.22em; color: var(--dim); text-transform: uppercase; }
 
-        .recording-time {
-            color: var(--color-text-3);
+        /* ================ WEEK ================ */
+        .week-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+        .task-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 2px;
+            border-bottom: 1px solid var(--line);
+        }
+        .task-check {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            border: 1px solid var(--dim);
+            border-radius: 2px;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: all 150ms ease;
+        }
+        .task-check:hover { border-color: var(--peach-50); }
+        .task-check svg { width: 10px; height: 10px; display: none; }
+        .task-row.overdue .task-check { border-color: var(--peach-100); }
+        .task-row.done .task-check { background: var(--peach-50); border-color: var(--peach-50); }
+        .task-row.done .task-check svg { display: block; color: #0a0a0a; }
+        .task-text {
+            flex: 1;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--ink);
+            cursor: pointer;
+            word-break: break-word;
+        }
+        .task-row.done .task-text { color: var(--faint); text-decoration: line-through; }
+        .task-due {
+            font-size: 9px;
+            letter-spacing: 0.12em;
+            color: var(--dim);
+            text-transform: uppercase;
+            flex-shrink: 0;
+            margin-top: 3px;
             font-variant-numeric: tabular-nums;
         }
-        .recording-time.warn { color: #c44; }
+        .task-row.overdue .task-due { color: var(--peach-100); }
+        .task-row.today .task-due { color: var(--peach-75); }
+
+        .add-task-btn { margin: 12px 0 4px; flex-shrink: 0; }
+        .add-task-form { display: none; flex-direction: column; gap: 8px; margin: 12px 0 4px; flex-shrink: 0; }
+        .add-task-form.open { display: flex; }
+        .add-task-form input[type="date"] { color-scheme: dark; }
+
+        .review-block { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+        .review-section { margin-bottom: 14px; }
+        .review-section .label { display: block; margin-bottom: 6px; }
+        .review-item {
+            font-family: var(--serif);
+            font-style: italic;
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--dim);
+            padding-left: 12px;
+            position: relative;
+            margin-bottom: 8px;
+        }
+        .review-item::before { content: '-'; position: absolute; left: 0; color: var(--faint); }
+        .review-item .note {
+            display: block;
+            font-family: var(--mono);
+            font-style: normal;
+            font-size: 10px;
+            color: var(--faint);
+            line-height: 1.55;
+            margin-top: 2px;
+        }
+
+        /* ================ OVERLAY EDITORS ================ */
+        .frc-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 400;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(17, 17, 17, 0.75);
+        }
+        .frc-overlay.is-open { display: flex; }
+        .frc-overlay-panel {
+            width: min(560px, 100%);
+            max-height: 86vh;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 16px 14px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-panel);
+            box-shadow: 0 12px 44px rgba(0, 0, 0, 0.6);
+            overflow-y: auto;
+        }
+        .overlay-meta {
+            font-size: 9px;
+            letter-spacing: 0.18em;
+            color: var(--dim);
+            text-transform: uppercase;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #noteEditText {
+            min-height: 200px;
+            max-height: 44vh;
+            resize: vertical;
+            font-family: var(--serif);
+            font-style: italic;
+            font-size: 17px;
+            line-height: 1.8;
+        }
 
         /* ================ TOAST ================ */
         .toast {
             position: fixed;
-            top: 32px;
+            top: 24px;
             left: 50%;
-            transform: translate(-50%, -120%);
-            background: var(--color-highlight-bg);
-            border: 1px solid var(--color-highlight-border);
-            color: var(--color-cream);
-            font-family: var(--font-sans);
-            font-size: 11px;
-            letter-spacing: 2px;
+            transform: translate(-50%, -150%);
+            background: var(--panel);
+            border: 1px solid var(--peach-50);
+            border-radius: var(--radius);
+            color: var(--peach-25);
+            font-size: 10px;
+            letter-spacing: 0.18em;
             text-transform: uppercase;
-            padding: 14px 28px;
-            transition: transform 0.35s ease;
-            z-index: 100;
+            padding: 12px 22px;
+            transition: transform 0.3s ease;
+            z-index: 500;
             white-space: nowrap;
+            box-shadow: var(--shadow);
         }
         .toast.show { transform: translate(-50%, 0); }
-        .toast.error { color: #c44; }
+        .toast.error { color: var(--peach-100); border-color: var(--peach-100); }
 
         /* ================ RESET LINK ================ */
         .reset-link {
             position: fixed;
-            bottom: 16px;
-            right: 16px;
-            font-family: var(--font-sans);
-            font-size: 10px;
-            font-weight: 300;
-            letter-spacing: 2px;
-            color: var(--color-text-4);
+            bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+            right: 12px;
+            font-size: 9px;
+            letter-spacing: 0.18em;
+            color: var(--faint);
             text-transform: uppercase;
             cursor: pointer;
             opacity: 0;
@@ -701,23 +573,16 @@
             z-index: 50;
         }
         .reset-link.visible { opacity: 1; }
-        .reset-link:hover { color: var(--color-cream); }
+        .reset-link:hover { color: var(--peach-25); }
 
-        /* ================ MOBILE ================ */
+        /* compact type on small screens (matches the article pages) */
         @media (max-width: 600px) {
-            .screen { padding: 32px 20px; }
-            #loginScreen h1 { font-size: 40px; }
-            #loginScreen .tagline { font-size: 18px; margin-bottom: 48px; }
-            .home-top { gap: 12px; margin-bottom: 24px; }
-            .home-top-right .meta { font-size: 10px; letter-spacing: 1.5px; }
-            .home-top-right .meta-count { font-size: 10px; letter-spacing: 1.5px; }
-            .home-summary { gap: 28px; }
-            .summary-text { font-size: 15px; }
-            .summary-note { font-size: 11px; }
-            .entry-section h2 { font-size: 28px; }
-            .entry-textarea { font-size: 16px; padding: 18px; }
-            .entry-actions { width: 100%; }
-            .entry-actions .btn { flex: 1; padding: 16px 20px; }
+            #appScreen { padding: 10px 10px calc(6px + env(safe-area-inset-bottom, 0px)); }
+            .fg-panel { padding: 14px 12px 12px; }
+            .tabbar { padding: 10px 14px 4px; }
+            #entryText { font-size: 16px; line-height: 1.65; }
+            #noteEditText { font-size: 16px; line-height: 1.7; }
+            .login-panel h1 { font-size: 30px; }
         }
     </style>
 </head>
@@ -727,115 +592,126 @@
          LOGIN SCREEN
          ============================================ -->
     <div id="loginScreen" class="screen active">
-        <div class="logo">FORMA ROSA CREATIVE</div>
-        <h1>Creative Notebook</h1>
-        <div class="tagline">A place for the day's tasks and tomorrow's ideas.</div>
-
-        <div class="pat-form">
-            <input id="patInput" class="pat-input" type="password" autocomplete="off"
+        <div class="login-panel">
+            <div class="kicker">FORMA ROSA CREATIVE <span data-version></span></div>
+            <h1>Creative Notebook</h1>
+            <input id="patInput" class="frc-input" type="password" autocomplete="off"
                    placeholder="paste github personal access token">
-            <button id="connectBtn" class="btn">Connect</button>
+            <button id="connectBtn" class="frc-btn frc-btn--primary">Connect</button>
             <div id="patStatus" class="pat-status"></div>
-        </div>
-
-        <div class="pat-hint">
-            Fine-grained PAT, scoped to <code>creative-notebook-data</code> only,
-            with Contents: Read and write.
-            <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Generate one.</a>
+            <div class="pat-hint">
+                Fine-grained PAT, scoped to <code>creative-notebook-data</code> only,
+                with Contents: Read and write.
+                <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Generate one.</a>
+            </div>
         </div>
     </div>
 
     <!-- ============================================
-         HOME SCREEN
+         APP SCREEN: foreground panel + tab bar on canvas
          ============================================ -->
-    <div id="homeScreen" class="screen">
-        <div class="home-top">
-            <div class="home-top-left">
-                <div class="logo-stack">
-                    <div class="version" data-version></div>
-                    <div class="logo">FORMA ROSA CREATIVE</div>
+    <div id="appScreen" class="screen">
+        <div class="fg-panel">
+            <div class="app-top">
+                <div class="app-brand">FRC<span class="ver" data-version></span></div>
+                <div class="app-meta" id="topMeta"></div>
+            </div>
+
+            <!-- CAPTURE -->
+            <div id="capturePanel" class="panel active">
+                <textarea id="entryText" class="frc-input"
+                          placeholder="type here, or tap the microphone to dictate..."></textarea>
+                <div id="recordingPanel" class="recording-panel">
+                    <canvas id="waveform" class="waveform" aria-hidden="true"></canvas>
+                    <div class="recording-meta">
+                        <div id="recordingState" class="recording-state">
+                            <span class="dot"></span>
+                            <span id="recordingStateText">idle</span>
+                        </div>
+                        <div id="recordingTime" class="recording-time">0:00</div>
+                    </div>
                 </div>
-                <button class="play-btn" id="playBtn" aria-label="Create a new entry" title="Create a new entry">
-                    <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8 5 L19 12 L8 19 Z" />
-                    </svg>
-                </button>
+                <div class="capture-controls">
+                    <button id="micBtn" class="mic-btn" aria-label="Toggle microphone">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                             stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="9" y="3" width="6" height="12" rx="3"/>
+                            <path d="M5 11a7 7 0 0 0 14 0"/>
+                            <line x1="12" y1="18" x2="12" y2="22"/>
+                            <line x1="8" y1="22" x2="16" y2="22"/>
+                        </svg>
+                    </button>
+                    <select id="catSelect" class="frc-select" aria-label="Bucket"></select>
+                </div>
+                <div class="save-row">
+                    <button id="saveBtn" class="frc-btn frc-btn--primary">Save Entry</button>
+                </div>
             </div>
-            <div class="home-top-right">
-                <div class="meta" id="todayMeta"></div>
-                <div class="meta-count" id="entryCount">0 entries</div>
+
+            <!-- NOTES -->
+            <div id="notesPanel" class="panel">
+                <div class="chip-row" id="chipRow"></div>
+                <div class="sheet" id="notesList"></div>
+            </div>
+
+            <!-- WEEK -->
+            <div id="weekPanel" class="panel">
+                <div class="week-scroll">
+                    <div class="label" style="margin-bottom:4px;">This week</div>
+                    <div id="taskList"></div>
+                    <button id="addTaskBtn" class="frc-btn frc-btn--dashed add-task-btn">+ Add Task</button>
+                    <div id="addTaskForm" class="add-task-form">
+                        <input id="newTaskText" class="frc-input" type="text" placeholder="what needs to happen...">
+                        <input id="newTaskDue" class="frc-input" type="date" aria-label="Due date (optional)">
+                        <div class="frc-row2">
+                            <button id="newTaskCancel" class="frc-btn">Cancel</button>
+                            <button id="newTaskAdd" class="frc-btn frc-btn--primary">Add</button>
+                        </div>
+                    </div>
+                    <div class="review-block" id="reviewBlock"></div>
+                </div>
             </div>
         </div>
 
-        <div class="tabs">
-            <button class="tab active" data-tab="home">Home</button>
-            <button class="tab" data-tab="network">Network</button>
-            <button class="tab" data-tab="brands">Brands</button>
-            <button class="tab" data-tab="studios">Studios</button>
-        </div>
-
-        <div id="homePanel" class="panel active">
-            <div class="home-summary" id="homeSummary"></div>
-            <div class="home-summary-meta" id="homeSummaryMeta"></div>
-        </div>
-
-        <div id="networkPanel" class="panel">
-            <div class="list-panel" id="networkList"></div>
-        </div>
-
-        <div id="brandsPanel" class="panel">
-            <div class="list-panel" id="brandsList"></div>
-        </div>
-
-        <div id="studiosPanel" class="panel">
-            <div class="list-panel" id="studiosList"></div>
+        <!-- TAB BAR on the canvas -->
+        <div class="tabbar">
+            <button class="tab active" data-tab="capture">Capture</button>
+            <button class="tab" data-tab="notes">Notes</button>
+            <button class="tab" data-tab="week">Week <span class="tab-badge" id="weekBadge"></span></button>
         </div>
     </div>
 
     <!-- ============================================
-         ENTRY SCREEN
+         NOTE EDITOR OVERLAY
          ============================================ -->
-    <div id="entryScreen" class="screen">
-        <div class="entry-top">
-            <div class="logo-stack">
-                <div class="version" data-version></div>
-                <div class="logo">FORMA ROSA CREATIVE</div>
+    <div id="noteOverlay" class="frc-overlay">
+        <div class="frc-overlay-panel">
+            <div class="overlay-meta">
+                <span id="noteEditMeta"></span>
+                <span id="noteEditEdited"></span>
             </div>
-            <div class="meta" id="entryMeta"></div>
-        </div>
-
-        <div class="entry-section">
-            <div class="label">New entry</div>
-            <h2 id="entryPrompt">What's on your mind?</h2>
-            <textarea id="entryText" class="entry-textarea" autofocus
-                      placeholder="type here, or tap the microphone to dictate..."></textarea>
-        </div>
-
-        <div id="recordingPanel" class="recording-panel">
-            <canvas id="waveform" class="waveform" aria-hidden="true"></canvas>
-            <div class="recording-meta">
-                <div id="recordingState" class="recording-state">
-                    <span class="dot"></span>
-                    <span id="recordingStateText">disconnected</span>
-                </div>
-                <div id="recordingTime" class="recording-time">0:00</div>
+            <textarea id="noteEditText" class="frc-input"></textarea>
+            <select id="noteEditCat" class="frc-select" aria-label="Bucket"></select>
+            <div class="frc-row2">
+                <button id="noteDeleteBtn" class="frc-btn frc-btn--danger">Delete</button>
+                <button id="noteCancelBtn" class="frc-btn">Cancel</button>
+                <button id="noteSaveBtn" class="frc-btn frc-btn--primary">Save</button>
             </div>
         </div>
+    </div>
 
-        <div class="entry-controls">
-            <button id="micBtn" class="mic-btn" aria-label="Toggle microphone">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                     stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="9" y="3" width="6" height="12" rx="3"/>
-                    <path d="M5 11a7 7 0 0 0 14 0"/>
-                    <line x1="12" y1="18" x2="12" y2="22"/>
-                    <line x1="8" y1="22" x2="16" y2="22"/>
-                </svg>
-            </button>
-            <div id="micHint" class="mic-hint">Tap to dictate</div>
-            <div class="entry-actions">
-                <button id="cancelBtn" class="btn btn-quiet">Cancel</button>
-                <button id="saveBtn" class="btn">Save Entry</button>
+    <!-- ============================================
+         TASK EDITOR OVERLAY
+         ============================================ -->
+    <div id="taskOverlay" class="frc-overlay">
+        <div class="frc-overlay-panel">
+            <div class="overlay-meta"><span id="taskEditMeta">TASK</span></div>
+            <input id="taskEditText" class="frc-input" type="text">
+            <input id="taskEditDue" class="frc-input" type="date" aria-label="Due date (optional)">
+            <div class="frc-row2">
+                <button id="taskDeleteBtn" class="frc-btn frc-btn--danger">Delete</button>
+                <button id="taskCancelBtn" class="frc-btn">Cancel</button>
+                <button id="taskSaveBtn" class="frc-btn frc-btn--primary">Save</button>
             </div>
         </div>
     </div>
@@ -847,7 +723,6 @@
     <script type="module">
     'use strict';
 
-    // On-device speech-to-text engine. See whisper.js.
     import {
         loadModel    as whisperLoad,
         isReady      as whisperIsReady,
@@ -856,11 +731,11 @@
     } from './whisper.js';
 
     // ============================================
-    // CONFIG — the entire fork surface
+    // CONFIG
     // ============================================
-    // App version. Bumped automatically by push.bat (via bump-version.ps1).
+    // App version. Bumped automatically by finish.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '2.0.2';
+    const APP_VERSION = '3.0.1';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
@@ -868,23 +743,35 @@
     const DATA_START_YEAR  = 2026;
     const PAT_STORAGE_KEY  = 'creative_notebook_gh_pat';
 
+    const CONFIG_PATH  = 'config.json';
+    const TASKS_PATH   = 'tasks.json';
+    const SUMMARY_PATH = 'summary.json';
+
+    const DEFAULT_CATEGORIES = ['Practice', 'Inspiration', 'Context', 'Business Development', 'Marketing'];
+    const UNSORTED = '__unsorted';
+    const NEW_BUCKET = '__new';
+
     const dataPath = (year)  => `data-${year}.json`;
     const dataUrl  = (path)  => `https://api.github.com/repos/${DATA_OWNER}/${DATA_REPO}/contents/${path}`;
 
     // ============================================
     // STATE
     // ============================================
-    let githubToken    = null;
-    let yearData       = {};   // { 2026: [entry, ...] }
-    let yearShas       = {};   // { 2026: 'sha-string' }
-    let summaryData    = null; // last fetched summary.json contents
-    let summaryFetched = false;
-    let networkData    = null;
-    let brandsData     = null;
-    let studiosData    = null;
+    let githubToken  = null;
+    let yearData     = {};    // { 2026: [entry, ...] }
+    let yearShas     = {};    // { 2026: 'sha' }
+    let jsonCache    = {};    // { path: parsed object or null }
+    let jsonShas     = {};    // { path: sha or null }
+
+    let activeTab    = 'capture';
+    let notesFilter  = 'all'; // 'all' | UNSORTED | category name
+    let editingNoteId = null;
+    let editingTaskId = null;
+    let lastFetchAt  = 0;
 
     // Mic / recording state
     let isRecording         = false;
+    let isTranscribing      = false;
     let usedVoiceThisEntry  = false;
     let mediaStream         = null;
     let audioContext        = null;
@@ -894,33 +781,26 @@
     let recordingTimerId    = null;
     let lastSoundAt         = null;
     let connectedAt         = null;
-
-    // MediaRecorder + Whisper state (v2.0.0+)
     let mediaRecorder       = null;
     let audioChunks         = [];
     let whisperLoaded       = false;
     let whisperLoading      = false;
-    let whisperLoadProgress = 0; // 0-100 during download
+    let whisperLoadProgress = 0;
     let whisperLoadError    = null;
 
-    const CONNECTING_MIN_MS = 600;   // hold "connecting..." for at least this long
-    const CONNECTED_HOLD_MS = 1500;  // hold "connected" before showing recording state
+    const CONNECTING_MIN_MS = 600;
+    const CONNECTED_HOLD_MS = 1500;
 
     // ============================================
     // UTILITIES
     // ============================================
     function $(id) { return document.getElementById(id); }
 
-    function b64encodeUtf8(str) {
-        return btoa(unescape(encodeURIComponent(str)));
-    }
-    function b64decodeUtf8(b64) {
-        return decodeURIComponent(escape(atob(b64.replace(/\s/g, ''))));
-    }
+    function b64encodeUtf8(str) { return btoa(unescape(encodeURIComponent(str))); }
+    function b64decodeUtf8(b64) { return decodeURIComponent(escape(atob(b64.replace(/\s/g, '')))); }
 
     function uuid() {
         if (crypto && crypto.randomUUID) return crypto.randomUUID();
-        // RFC4122 v4 fallback
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
             const r = Math.random() * 16 | 0;
             const v = c === 'x' ? r : (r & 0x3 | 0x8);
@@ -929,9 +809,33 @@
     }
 
     function nowMeta() {
-        const d = new Date();
-        return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+        return new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     }
+
+    function todayLocalStr() {
+        const d = new Date();
+        const p = (n) => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    }
+
+    function fmtNoteDate(iso) {
+        const d = new Date(iso);
+        const opts = { month: 'short', day: 'numeric' };
+        if (d.getFullYear() !== new Date().getFullYear()) opts.year = 'numeric';
+        return d.toLocaleDateString('en-US', opts);
+    }
+
+    function fmtDue(dueStr) {
+        const today = todayLocalStr();
+        if (dueStr === today) return 'TODAY';
+        const [y, m, dd] = dueStr.split('-').map(Number);
+        const d = new Date(y, m - 1, dd);
+        const opts = { month: 'short', day: 'numeric' };
+        if (y !== new Date().getFullYear()) opts.year = '2-digit';
+        return d.toLocaleDateString('en-US', opts);
+    }
+
+    function catDisplay(cat) { return '/' + String(cat); }
 
     function setPatStatus(msg, isError = false) {
         const el = $('patStatus');
@@ -954,27 +858,18 @@
         toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
     }
 
-    function entryCount() {
-        return Object.values(yearData).reduce((sum, arr) => sum + arr.length, 0);
+    function allNotes() {
+        return Object.values(yearData).flat();
     }
 
-    function refreshHome() {
-        const n = entryCount();
-        $('entryCount').textContent = n === 1 ? '1 entry' : `${n} entries`;
-        $('todayMeta').textContent  = nowMeta();
-        renderSummary();
-        renderNetwork();
-        renderBrands();
-        renderStudios();
+    function categories() {
+        const cfg = jsonCache[CONFIG_PATH];
+        if (cfg && Array.isArray(cfg.categories) && cfg.categories.length) return cfg.categories;
+        return DEFAULT_CATEGORIES;
     }
 
-    function switchTab(tabName) {
-        document.querySelectorAll('.tab').forEach(t => {
-            t.classList.toggle('active', t.dataset.tab === tabName);
-        });
-        document.querySelectorAll('.panel').forEach(p => {
-            p.classList.toggle('active', p.id === `${tabName}Panel`);
-        });
+    function overlayOpen() {
+        return document.querySelector('.frc-overlay.is-open') !== null;
     }
 
     // ============================================
@@ -994,26 +889,18 @@
 
     // GET one year file. Returns { sha, entries } or null on 404.
     async function loadYearFile(year) {
-        const res = await ghFetch(`${dataUrl(dataPath(year))}?ref=${DATA_BRANCH}&t=${Date.now()}`, {
-            cache: 'no-store'
-        });
+        const res = await ghFetch(`${dataUrl(dataPath(year))}?ref=${DATA_BRANCH}&t=${Date.now()}`, { cache: 'no-store' });
         if (res.status === 404) return null;
         if (res.status === 401 || res.status === 403) throw new Error('AUTH');
         if (!res.ok) throw new Error(`load ${dataPath(year)} failed: ${res.status}`);
         const body = await res.json();
         let parsed = [];
-        try {
-            parsed = JSON.parse(b64decodeUtf8(body.content));
-        } catch (e) {
-            console.error(`${dataPath(year)} is not valid JSON:`, e);
-        }
-        return {
-            sha: body.sha,
-            entries: Array.isArray(parsed) ? parsed : []
-        };
+        try { parsed = JSON.parse(b64decodeUtf8(body.content)); }
+        catch (e) { console.error(`${dataPath(year)} is not valid JSON:`, e); }
+        return { sha: body.sha, entries: Array.isArray(parsed) ? parsed : [] };
     }
 
-    // PUT a year file. `sha` only present when updating an existing file.
+    // PUT a year file (whole-file write, SHA optimistic concurrency).
     async function writeYearFile(year, entries, message) {
         const sorted  = [...entries].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
         const content = b64encodeUtf8(JSON.stringify(sorted, null, 2) + '\n');
@@ -1021,12 +908,7 @@
         const res = await ghFetch(dataUrl(dataPath(year)), {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                message,
-                content,
-                branch: DATA_BRANCH,
-                ...(sha ? { sha } : {})
-            })
+            body: JSON.stringify({ message, content, branch: DATA_BRANCH, ...(sha ? { sha } : {}) })
         });
         if (res.status === 401 || res.status === 403) throw new Error('AUTH');
         if (!res.ok) {
@@ -1039,174 +921,121 @@
         return body;
     }
 
-    async function loadAllYears() {
-        yearData = {};
-        yearShas = {};
-        const currentYear = new Date().getUTCFullYear();
-        for (let y = DATA_START_YEAR; y <= currentYear; y++) {
-            const result = await loadYearFile(y);
-            if (result) {
-                yearData[y] = result.entries;
-                yearShas[y] = result.sha;
-            } else {
-                yearData[y] = [];
-                // no sha — file will be created on first write
-            }
-        }
-    }
-
-    // GET an auxiliary JSON file (summary.json, network.json, etc.).
-    // Returns the parsed object, or null on 404 / parse error.
-    // Auth errors still bubble.
-    async function loadJsonFile(path) {
-        const res = await ghFetch(`${dataUrl(path)}?ref=${DATA_BRANCH}&t=${Date.now()}`, {
-            cache: 'no-store'
-        });
-        if (res.status === 404) return null;
-        if (res.status === 401 || res.status === 403) throw new Error('AUTH');
-        if (!res.ok) {
-            console.warn(`load ${path} failed: ${res.status}`);
-            return null;
-        }
-        const body = await res.json();
-        try {
-            return JSON.parse(b64decodeUtf8(body.content));
-        } catch (e) {
-            console.error(`${path} is not valid JSON:`, e);
-            return null;
-        }
-    }
-
-    function loadSummary() { return loadJsonFile('summary.json'); }
-    function loadNetwork() { return loadJsonFile('network.json'); }
-    function loadBrands()  { return loadJsonFile('target-brands.json'); }
-    function loadStudios() { return loadJsonFile('target-studios.json'); }
-
-    // Render summaryData into the home screen.
-    function renderSummary() {
-        const host = $('homeSummary');
-        const meta = $('homeSummaryMeta');
-        if (!host || !meta) return;
-
-        host.innerHTML = '';
-        meta.textContent = '';
-
-        const sections = (summaryData && Array.isArray(summaryData.sections)) ? summaryData.sections : [];
-        const hasContent = sections.some(s => Array.isArray(s.items) && s.items.length > 0);
-
-        if (!hasContent) {
-            // Empty state - whether the file is missing, empty, or has no items.
-            const empty = document.createElement('div');
-            empty.className = 'summary-empty';
-            const title = document.createElement('div');
-            title.className = 'summary-empty-title';
-            title.textContent = 'No summary yet.';
-            const text = document.createElement('div');
-            text.className = 'summary-empty-text';
-            text.textContent = 'Capture some entries below, then chat with Cowork to generate your first review.';
-            empty.appendChild(title);
-            empty.appendChild(text);
-            host.appendChild(empty);
-            return;
-        }
-
-        sections.forEach(section => {
-            if (!Array.isArray(section.items) || section.items.length === 0) return;
-
-            const sectionEl = document.createElement('div');
-            sectionEl.className = 'summary-section';
-
-            const titleEl = document.createElement('div');
-            titleEl.className = 'summary-section-title';
-            titleEl.textContent = section.title || '';
-            sectionEl.appendChild(titleEl);
-
-            const list = document.createElement('ul');
-            list.className = 'summary-list';
-
-            section.items.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'summary-item';
-
-                const text = document.createElement('div');
-                text.className = 'summary-text';
-                text.textContent = (item && item.text) ? String(item.text) : '';
-                li.appendChild(text);
-
-                if (item && item.note) {
-                    const note = document.createElement('div');
-                    note.className = 'summary-note';
-                    note.textContent = String(item.note);
-                    li.appendChild(note);
-                }
-
-                list.appendChild(li);
-            });
-
-            sectionEl.appendChild(list);
-            host.appendChild(sectionEl);
-        });
-
-        // "Last updated" footer
-        if (summaryData && summaryData.updated_at) {
-            try {
-                const d = new Date(summaryData.updated_at);
-                const formatted = d.toLocaleString('en-US', {
-                    month: 'short', day: 'numeric',
-                    hour: 'numeric', minute: '2-digit'
-                });
-                meta.textContent = `Last updated ${formatted}`;
-            } catch (_) { /* ignore bad date */ }
-        }
-    }
-
-    async function saveEntry(entry) {
-        const year = new Date(entry.timestamp).getUTCFullYear();
+    // Apply opFn to a year's entries and write; on SHA conflict reload + retry once.
+    async function mutateYear(year, opFn, message) {
         if (!yearData[year]) yearData[year] = [];
-        const merged = [...yearData[year], entry];
+        const first = opFn([...yearData[year]]);
+        if (first === null) return; // op decided nothing to do
         try {
-            await writeYearFile(year, merged, `add entry ${entry.timestamp}`);
+            await writeYearFile(year, first, message);
         } catch (err) {
-            // SHA-conflict retry once
             if (/\b(409|422)\b/.test(err.message)) {
                 const reloaded = await loadYearFile(year);
-                if (reloaded) {
-                    yearData[year] = reloaded.entries;
-                    yearShas[year] = reloaded.sha;
-                }
-                const retry = [...yearData[year], entry];
-                await writeYearFile(year, retry, `add entry ${entry.timestamp}`);
+                if (reloaded) { yearData[year] = reloaded.entries; yearShas[year] = reloaded.sha; }
+                const second = opFn([...yearData[year]]);
+                if (second === null) return;
+                await writeYearFile(year, second, message);
             } else {
                 throw err;
             }
         }
     }
 
+    async function loadAllYears() {
+        const fresh = {};
+        const freshShas = {};
+        const currentYear = new Date().getUTCFullYear();
+        for (let y = DATA_START_YEAR; y <= currentYear; y++) {
+            const result = await loadYearFile(y);
+            if (result) { fresh[y] = result.entries; freshShas[y] = result.sha; }
+            else { fresh[y] = []; }
+        }
+        yearData = fresh;
+        yearShas = freshShas;
+    }
+
+    // GET an auxiliary JSON file into the cache. 404 -> null (created on first write).
+    async function loadJsonFile(path) {
+        const res = await ghFetch(`${dataUrl(path)}?ref=${DATA_BRANCH}&t=${Date.now()}`, { cache: 'no-store' });
+        if (res.status === 404) { jsonCache[path] = null; jsonShas[path] = null; return null; }
+        if (res.status === 401 || res.status === 403) throw new Error('AUTH');
+        if (!res.ok) { console.warn(`load ${path} failed: ${res.status}`); return jsonCache[path] || null; }
+        const body = await res.json();
+        try {
+            jsonCache[path] = JSON.parse(b64decodeUtf8(body.content));
+            jsonShas[path] = body.sha;
+        } catch (e) {
+            console.error(`${path} is not valid JSON:`, e);
+        }
+        return jsonCache[path];
+    }
+
+    async function writeJsonFile(path, obj, message) {
+        const content = b64encodeUtf8(JSON.stringify(obj, null, 2) + '\n');
+        const sha = jsonShas[path];
+        const res = await ghFetch(dataUrl(path), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message, content, branch: DATA_BRANCH, ...(sha ? { sha } : {}) })
+        });
+        if (res.status === 401 || res.status === 403) throw new Error('AUTH');
+        if (!res.ok) {
+            const text = await res.text().catch(() => '');
+            throw new Error(`write ${path} failed: ${res.status} ${text}`);
+        }
+        const body = await res.json();
+        jsonCache[path] = obj;
+        jsonShas[path] = body.content && body.content.sha ? body.content.sha : null;
+        return body;
+    }
+
+    // Apply mutateFn to a cached JSON doc and write; on SHA conflict reload + retry once.
+    async function mutateJsonFile(path, mutateFn, message, emptyDoc) {
+        const base = jsonCache[path] ? JSON.parse(JSON.stringify(jsonCache[path])) : JSON.parse(JSON.stringify(emptyDoc));
+        const first = mutateFn(base);
+        if (first === null) return;
+        try {
+            await writeJsonFile(path, first, message);
+        } catch (err) {
+            if (/\b(409|422)\b/.test(err.message)) {
+                await loadJsonFile(path);
+                const base2 = jsonCache[path] ? JSON.parse(JSON.stringify(jsonCache[path])) : JSON.parse(JSON.stringify(emptyDoc));
+                const second = mutateFn(base2);
+                if (second === null) return;
+                await writeJsonFile(path, second, message);
+            } else {
+                throw err;
+            }
+        }
+    }
+
+    function tasksDoc() { return jsonCache[TASKS_PATH] || { tasks: [] }; }
+
     // ============================================
     // CONNECT FLOW
     // ============================================
+    async function loadEverything() {
+        await loadAllYears();
+        try {
+            await loadJsonFile(CONFIG_PATH);
+            await loadJsonFile(TASKS_PATH);
+            await loadJsonFile(SUMMARY_PATH);
+        } catch (err) {
+            if (err.message === 'AUTH') throw err;
+            console.warn('aux fetch failed, continuing:', err);
+        }
+        lastFetchAt = Date.now();
+    }
+
     async function connectWithToken(token, fromStorage = false) {
         githubToken = token;
         try {
             setPatStatus('connecting...');
-            await loadAllYears();
-            // Auxiliary JSONs are best-effort; AUTH still bubbles.
-            try {
-                summaryData = await loadSummary();
-                networkData = await loadNetwork();
-                brandsData  = await loadBrands();
-                studiosData = await loadStudios();
-                summaryFetched = true;
-            } catch (err) {
-                if (err.message === 'AUTH') throw err;
-                summaryFetched = true;
-                console.warn('aux fetch failed, continuing without it:', err);
-            }
-            // Persist token only after a successful read
+            await loadEverything();
             localStorage.setItem(PAT_STORAGE_KEY, token);
             $('resetLink').classList.add('visible');
-            refreshHome();
-            showScreen('homeScreen');
+            renderAll();
+            showScreen('appScreen');
             setPatStatus('');
             $('patInput').value = '';
         } catch (err) {
@@ -1225,13 +1054,8 @@
         if (!confirm('Reset connection? This wipes the saved token from this device. Your data on GitHub is untouched.')) return;
         localStorage.removeItem(PAT_STORAGE_KEY);
         githubToken = null;
-        yearData = {};
-        yearShas = {};
-        summaryData = null;
-        summaryFetched = false;
-        networkData = null;
-        brandsData  = null;
-        studiosData = null;
+        yearData = {}; yearShas = {};
+        jsonCache = {}; jsonShas = {};
         $('resetLink').classList.remove('visible');
         showScreen('loginScreen');
         $('patInput').focus();
@@ -1247,54 +1071,303 @@
         }
     }
 
-    // ============================================
-    // ENTRY COMPOSER
-    // ============================================
-    function openEntry() {
-        $('entryText').value = '';
-        $('entryMeta').textContent = nowMeta();
-        usedVoiceThisEntry = false;
-        resetRecordingPanel();
-        showScreen('entryScreen');
-        setTimeout(() => $('entryText').focus(), 80);
+    // Refetch on focus so an open app never shows a stale dashboard.
+    async function refetchIfStale(force = false) {
+        if (!githubToken) return;
+        if (isRecording || isTranscribing || overlayOpen()) return;
+        if ($('entryText').value.trim()) return; // never clobber an unsaved entry's context
+        if (!force && Date.now() - lastFetchAt < 60000) return;
+        try {
+            await loadEverything();
+            renderAll();
+        } catch (err) {
+            console.warn('refetch failed:', err);
+        }
     }
 
-    function cancelEntry() {
-        if (isRecording) stopRecording();
-        showScreen('homeScreen');
+    // ============================================
+    // RENDERING
+    // ============================================
+    function renderAll() {
+        renderTopMeta();
+        renderCatSelects();
+        renderNotes();
+        renderTasks();
+        renderReview();
+        renderBadge();
     }
 
+    function switchTab(tabName) {
+        activeTab = tabName;
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tabName));
+        document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `${tabName}Panel`));
+        renderTopMeta();
+        if (tabName === 'capture') setTimeout(() => $('entryText').focus(), 60);
+    }
+
+    function renderTopMeta() {
+        const el = $('topMeta');
+        if (activeTab === 'notes') {
+            const n = allNotes().length;
+            el.textContent = n === 1 ? '1 entry' : `${n} entries`;
+        } else {
+            el.textContent = nowMeta();
+        }
+    }
+
+    // Fill both category <select>s from config.
+    function renderCatSelects() {
+        const cats = categories();
+        const build = (sel, includeSortLater, current) => {
+            sel.innerHTML = '';
+            if (includeSortLater) {
+                const o = document.createElement('option');
+                o.value = '';
+                o.textContent = '/ sort later';
+                sel.appendChild(o);
+            }
+            cats.forEach(c => {
+                const o = document.createElement('option');
+                o.value = c;
+                o.textContent = catDisplay(c).toUpperCase();
+                sel.appendChild(o);
+            });
+            const n = document.createElement('option');
+            n.value = NEW_BUCKET;
+            n.textContent = '+ new bucket...';
+            sel.appendChild(n);
+            if (current !== undefined) sel.value = current;
+        };
+        const prevCapture = $('catSelect').value;
+        build($('catSelect'), true, prevCapture && prevCapture !== NEW_BUCKET ? prevCapture : '');
+        build($('noteEditCat'), true);
+    }
+
+    // sel may be null (invoked from the "+" chip rather than a <select>).
+    async function handleNewBucket(sel, fallbackValue) {
+        const name = (prompt('New bucket name:') || '').trim();
+        if (!name) { if (sel) sel.value = fallbackValue; return; }
+        const existing = categories().find(c => c.toLowerCase() === name.toLowerCase());
+        if (existing) { renderCatSelects(); if (sel) sel.value = existing; return; }
+        try {
+            await mutateJsonFile(CONFIG_PATH, (doc) => {
+                if (!Array.isArray(doc.categories) || !doc.categories.length) doc.categories = [...DEFAULT_CATEGORIES];
+                if (!doc.categories.some(c => c.toLowerCase() === name.toLowerCase())) doc.categories.push(name);
+                return doc;
+            }, `add bucket ${name}`, { categories: [...DEFAULT_CATEGORIES] });
+            renderCatSelects();
+            renderNotes();
+            if (sel) sel.value = name;
+            showToast(`bucket added ${catDisplay(name)}`);
+        } catch (err) {
+            console.error(err);
+            if (sel) sel.value = fallbackValue;
+            showToast('could not add bucket', true);
+        }
+    }
+
+    // ---------- NOTES ----------
+    function renderNotes() {
+        renderChips();
+        const host = $('notesList');
+        host.innerHTML = '';
+
+        let notes = allNotes().slice().sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));
+        if (notesFilter === UNSORTED) notes = notes.filter(n => !n.category);
+        else if (notesFilter !== 'all') notes = notes.filter(n => n.category === notesFilter);
+
+        if (!notes.length) {
+            const empty = document.createElement('div');
+            empty.className = 'sheet-empty';
+            const p = document.createElement('p');
+            p.className = 'frc-note';
+            p.textContent = notesFilter === 'all' ? 'no entries yet' : 'nothing in this bucket';
+            empty.appendChild(p);
+            host.appendChild(empty);
+            return;
+        }
+
+        notes.forEach(n => {
+            const row = document.createElement('div');
+            row.className = 'sheet-row';
+            row.dataset.id = n.id;
+
+            const meta = document.createElement('div');
+            meta.className = 'sheet-row-meta';
+            const left = document.createElement('span');
+            left.textContent = `${fmtNoteDate(n.timestamp)} · ${n.source || 'typed'}`;
+            meta.appendChild(left);
+            const right = document.createElement('span');
+            right.className = 'cat';
+            right.textContent = n.category ? catDisplay(n.category) : 'unsorted';
+            if (!n.category) right.style.color = 'var(--faint)';
+            meta.appendChild(right);
+            row.appendChild(meta);
+
+            const text = document.createElement('div');
+            text.className = 'sheet-row-text';
+            text.textContent = n.text || '';
+            row.appendChild(text);
+
+            row.addEventListener('click', () => openNoteEditor(n.id));
+            host.appendChild(row);
+        });
+    }
+
+    function renderChips() {
+        const host = $('chipRow');
+        host.innerHTML = '';
+        const notes = allNotes();
+        const unsortedCount = notes.filter(n => !n.category).length;
+
+        const mk = (label, value, extraClass) => {
+            const b = document.createElement('button');
+            b.className = 'chip' + (extraClass ? ' ' + extraClass : '');
+            b.textContent = label;
+            if (value === notesFilter) b.classList.add('active');
+            b.addEventListener('click', () => { notesFilter = value; renderNotes(); });
+            return b;
+        };
+
+        host.appendChild(mk('All', 'all'));
+        categories().forEach(c => host.appendChild(mk(catDisplay(c), c)));
+        if (unsortedCount > 0) host.appendChild(mk(`unsorted ${unsortedCount}`, UNSORTED));
+
+        const plus = document.createElement('button');
+        plus.className = 'chip chip--new';
+        plus.textContent = '+';
+        plus.setAttribute('aria-label', 'Add bucket');
+        plus.addEventListener('click', () => handleNewBucket(null, ''));
+        host.appendChild(plus);
+    }
+
+    function findNote(id) {
+        for (const [year, arr] of Object.entries(yearData)) {
+            const n = arr.find(e => e.id === id);
+            if (n) return { year: Number(year), note: n };
+        }
+        return null;
+    }
+
+    function openNoteEditor(id) {
+        const found = findNote(id);
+        if (!found) return;
+        editingNoteId = id;
+        const { note } = found;
+        $('noteEditMeta').textContent = `${fmtNoteDate(note.timestamp)} · ${note.source || 'typed'}`;
+        $('noteEditEdited').textContent = note.edited_at ? `edited ${fmtNoteDate(note.edited_at)}` : '';
+        $('noteEditText').value = note.text || '';
+        renderCatSelects();
+        $('noteEditCat').value = note.category || '';
+        $('noteOverlay').classList.add('is-open');
+    }
+
+    function closeNoteEditor() {
+        editingNoteId = null;
+        $('noteOverlay').classList.remove('is-open');
+    }
+
+    async function saveNoteEdit() {
+        if (!editingNoteId) return;
+        const found = findNote(editingNoteId);
+        if (!found) { closeNoteEditor(); return; }
+        const id = editingNoteId;
+        const newText = $('noteEditText').value.trim();
+        const newCat  = $('noteEditCat').value;
+        if (!newText) { showToast('entry is empty', true); return; }
+        if (newCat === NEW_BUCKET) { showToast('pick a bucket first', true); return; }
+
+        const btn = $('noteSaveBtn');
+        btn.disabled = true; btn.textContent = 'Saving...';
+        try {
+            await mutateYear(found.year, (entries) => {
+                const e = entries.find(x => x.id === id);
+                if (!e) return null;
+                const changed = (e.text !== newText) || ((e.category || '') !== newCat);
+                if (!changed) return null;
+                e.text = newText;
+                if (newCat) e.category = newCat; else delete e.category;
+                e.edited_at = new Date().toISOString();
+                return entries;
+            }, `edit entry ${id}`);
+            closeNoteEditor();
+            renderNotes();
+            renderTopMeta();
+            showToast('entry updated');
+        } catch (err) {
+            console.error(err);
+            if (err.message === 'AUTH') { showToast('auth error - reconnect', true); resetConnection(); }
+            else showToast('save failed - try again', true);
+        } finally {
+            btn.disabled = false; btn.textContent = 'Save';
+        }
+    }
+
+    async function deleteNote() {
+        if (!editingNoteId) return;
+        if (!confirm('Delete this entry? This cannot be undone.')) return;
+        const found = findNote(editingNoteId);
+        if (!found) { closeNoteEditor(); return; }
+        const id = editingNoteId;
+        const btn = $('noteDeleteBtn');
+        btn.disabled = true;
+        try {
+            await mutateYear(found.year, (entries) => {
+                if (!entries.some(x => x.id === id)) return null;
+                return entries.filter(x => x.id !== id);
+            }, `delete entry ${id}`);
+            closeNoteEditor();
+            renderNotes();
+            renderTopMeta();
+            showToast('entry deleted');
+        } catch (err) {
+            console.error(err);
+            showToast('delete failed - try again', true);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // ---------- CAPTURE ----------
     async function submitEntry() {
         const text = $('entryText').value.trim();
-        if (!text) {
+        if (isRecording) await stopRecording();
+        const finalText = $('entryText').value.trim() || text;
+        if (!finalText) {
             showToast('entry is empty', true);
             $('entryText').focus();
             return;
         }
-        if (isRecording) stopRecording();
+        const cat = $('catSelect').value;
+        if (cat === NEW_BUCKET) { showToast('pick a bucket first', true); return; }
 
         const entry = {
             id: uuid(),
             timestamp: new Date().toISOString(),
-            text,
+            text: finalText,
             source: usedVoiceThisEntry ? 'voice' : 'typed'
         };
+        if (cat) entry.category = cat;
 
         const saveBtn = $('saveBtn');
         saveBtn.disabled = true;
         saveBtn.textContent = 'Saving...';
-
         try {
-            await saveEntry(entry);
-            refreshHome();
-            showScreen('homeScreen');
-            showToast('entry saved');
+            const year = new Date(entry.timestamp).getUTCFullYear();
+            await mutateYear(year, (entries) => {
+                if (entries.some(x => x.id === entry.id)) return null;
+                entries.push(entry);
+                return entries;
+            }, `add entry ${entry.timestamp}`);
+            $('entryText').value = '';
+            usedVoiceThisEntry = false;
+            renderNotes();
+            renderTopMeta();
+            showToast(cat ? `saved ${catDisplay(cat)}` : 'saved · sort later');
         } catch (err) {
             console.error(err);
-            if (err.message === 'AUTH') {
-                showToast('auth error - reconnect', true);
-                resetConnection();
-            } else {
+            if (err.message === 'AUTH') { showToast('auth error - reconnect', true); resetConnection(); }
+            else {
                 showToast('save failed - try again', true);
                 alert(`Could not save entry. Check your connection and try again.\n\n${err.message}`);
             }
@@ -1304,44 +1377,266 @@
         }
     }
 
-    // ============================================
-    // MIC: SPEECH RECOGNITION + WAVEFORM
-    // ============================================
-    // v2.0+: speech-to-text runs ON-DEVICE via Whisper (transformers.js).
-    //   1. AnalyserNode (Web Audio API) drives the live waveform during
-    //      recording. Same as v1.x.
-    //   2. MediaRecorder captures the full audio Blob.
-    //   3. On stop, the Blob is fed to whisper.transcribe(), which returns
-    //      a text string. That string is appended to the textarea.
-    // No third-party API. No streaming text. The transcription is BATCH:
-    // record -> tap stop -> short wait -> text appears.
+    // ---------- TASKS ----------
+    function taskSort(a, b) {
+        if (!!a.done !== !!b.done) return a.done ? 1 : -1;
+        if (!a.done) {
+            const ad = a.due || '9999-12-31';
+            const bd = b.due || '9999-12-31';
+            if (ad !== bd) return ad < bd ? -1 : 1;
+            return (a.created_at || '') < (b.created_at || '') ? -1 : 1;
+        }
+        return (a.done_at || '') < (b.done_at || '') ? 1 : -1;
+    }
 
+    function renderTasks() {
+        const host = $('taskList');
+        host.innerHTML = '';
+        const tasks = (tasksDoc().tasks || []).slice().sort(taskSort);
+        const today = todayLocalStr();
+
+        if (!tasks.length) {
+            const p = document.createElement('p');
+            p.className = 'frc-note';
+            p.style.cssText = 'font-size:10px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;text-align:center;padding:18px 0;';
+            p.textContent = 'no tasks this week';
+            host.appendChild(p);
+            return;
+        }
+
+        tasks.forEach(t => {
+            const row = document.createElement('div');
+            row.className = 'task-row';
+            if (t.done) row.classList.add('done');
+            else if (t.due && t.due < today) row.classList.add('overdue');
+            else if (t.due === today) row.classList.add('today');
+
+            const check = document.createElement('button');
+            check.className = 'task-check';
+            check.setAttribute('aria-label', t.done ? 'Mark not done' : 'Mark done');
+            check.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M4 12.5 L9.5 18 L20 6.5"/></svg>';
+            check.addEventListener('click', (e) => { e.stopPropagation(); toggleTask(t.id); });
+            row.appendChild(check);
+
+            const text = document.createElement('div');
+            text.className = 'task-text';
+            text.textContent = t.text || '';
+            text.addEventListener('click', () => openTaskEditor(t.id));
+            row.appendChild(text);
+
+            if (t.due) {
+                const due = document.createElement('div');
+                due.className = 'task-due';
+                due.textContent = t.due < today && !t.done ? `${fmtDue(t.due)} !` : fmtDue(t.due);
+                row.appendChild(due);
+            }
+            host.appendChild(row);
+        });
+    }
+
+    function renderBadge() {
+        const badge = $('weekBadge');
+        const today = todayLocalStr();
+        const horizon = (() => {
+            const d = new Date();
+            d.setDate(d.getDate() + 7);
+            const p = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+        })();
+        const count = (tasksDoc().tasks || []).filter(t => !t.done && t.due && t.due <= horizon).length;
+        badge.textContent = count;
+        badge.classList.toggle('on', count > 0);
+    }
+
+    async function toggleTask(id) {
+        try {
+            await mutateJsonFile(TASKS_PATH, (doc) => {
+                if (!Array.isArray(doc.tasks)) doc.tasks = [];
+                const t = doc.tasks.find(x => x.id === id);
+                if (!t) return null;
+                t.done = !t.done;
+                if (t.done) t.done_at = new Date().toISOString(); else delete t.done_at;
+                return doc;
+            }, `toggle task ${id}`, { tasks: [] });
+            renderTasks();
+            renderBadge();
+        } catch (err) {
+            console.error(err);
+            showToast('could not update task', true);
+        }
+    }
+
+    async function addTask() {
+        const text = $('newTaskText').value.trim();
+        const due = $('newTaskDue').value || null;
+        if (!text) { showToast('task is empty', true); $('newTaskText').focus(); return; }
+        const btn = $('newTaskAdd');
+        btn.disabled = true;
+        try {
+            const task = { id: uuid(), text, due, done: false, created_at: new Date().toISOString() };
+            await mutateJsonFile(TASKS_PATH, (doc) => {
+                if (!Array.isArray(doc.tasks)) doc.tasks = [];
+                if (doc.tasks.some(x => x.id === task.id)) return null;
+                doc.tasks.push(task);
+                return doc;
+            }, `add task: ${text.slice(0, 48)}`, { tasks: [] });
+            $('newTaskText').value = '';
+            $('newTaskDue').value = '';
+            toggleAddTaskForm(false);
+            renderTasks();
+            renderBadge();
+            showToast('task added');
+        } catch (err) {
+            console.error(err);
+            showToast('could not add task', true);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function toggleAddTaskForm(open) {
+        $('addTaskForm').classList.toggle('open', open);
+        $('addTaskBtn').style.display = open ? 'none' : '';
+        if (open) setTimeout(() => $('newTaskText').focus(), 60);
+    }
+
+    function openTaskEditor(id) {
+        const t = (tasksDoc().tasks || []).find(x => x.id === id);
+        if (!t) return;
+        editingTaskId = id;
+        $('taskEditMeta').textContent = t.done ? 'task · done' : 'task';
+        $('taskEditText').value = t.text || '';
+        $('taskEditDue').value = t.due || '';
+        $('taskOverlay').classList.add('is-open');
+    }
+
+    function closeTaskEditor() {
+        editingTaskId = null;
+        $('taskOverlay').classList.remove('is-open');
+    }
+
+    async function saveTaskEdit() {
+        if (!editingTaskId) return;
+        const id = editingTaskId;
+        const text = $('taskEditText').value.trim();
+        const due = $('taskEditDue').value || null;
+        if (!text) { showToast('task is empty', true); return; }
+        try {
+            await mutateJsonFile(TASKS_PATH, (doc) => {
+                if (!Array.isArray(doc.tasks)) doc.tasks = [];
+                const t = doc.tasks.find(x => x.id === id);
+                if (!t) return null;
+                if (t.text === text && (t.due || null) === due) return null;
+                t.text = text;
+                if (due) t.due = due; else delete t.due;
+                return doc;
+            }, `edit task ${id}`, { tasks: [] });
+            closeTaskEditor();
+            renderTasks();
+            renderBadge();
+            showToast('task updated');
+        } catch (err) {
+            console.error(err);
+            showToast('save failed - try again', true);
+        }
+    }
+
+    async function deleteTask() {
+        if (!editingTaskId) return;
+        if (!confirm('Delete this task?')) return;
+        const id = editingTaskId;
+        try {
+            await mutateJsonFile(TASKS_PATH, (doc) => {
+                if (!Array.isArray(doc.tasks)) return null;
+                if (!doc.tasks.some(x => x.id === id)) return null;
+                doc.tasks = doc.tasks.filter(x => x.id !== id);
+                return doc;
+            }, `delete task ${id}`, { tasks: [] });
+            closeTaskEditor();
+            renderTasks();
+            renderBadge();
+            showToast('task deleted');
+        } catch (err) {
+            console.error(err);
+            showToast('delete failed - try again', true);
+        }
+    }
+
+    // ---------- REVIEW (summary.json, read-only) ----------
+    function renderReview() {
+        const host = $('reviewBlock');
+        host.innerHTML = '';
+        const summary = jsonCache[SUMMARY_PATH];
+        const sections = (summary && Array.isArray(summary.sections)) ? summary.sections : [];
+        const hasContent = sections.some(s => Array.isArray(s.items) && s.items.length > 0);
+
+        const head = document.createElement('div');
+        head.className = 'label';
+        head.style.marginBottom = '10px';
+        let headText = 'From the review';
+        if (summary && summary.updated_at) {
+            try { headText += ' · ' + fmtNoteDate(summary.updated_at); } catch (_) {}
+        }
+        head.textContent = headText;
+        host.appendChild(head);
+
+        if (!hasContent) {
+            const p = document.createElement('div');
+            p.className = 'review-item';
+            p.textContent = 'no review yet - sit down with cowork to generate one';
+            host.appendChild(p);
+            return;
+        }
+
+        sections.forEach(section => {
+            if (!Array.isArray(section.items) || !section.items.length) return;
+            const sec = document.createElement('div');
+            sec.className = 'review-section';
+            const title = document.createElement('span');
+            title.className = 'label';
+            title.textContent = section.title || '';
+            sec.appendChild(title);
+            section.items.forEach(item => {
+                const it = document.createElement('div');
+                it.className = 'review-item';
+                it.textContent = (item && item.text) ? String(item.text) : '';
+                if (item && item.note) {
+                    const nt = document.createElement('span');
+                    nt.className = 'note';
+                    nt.textContent = String(item.note);
+                    it.appendChild(nt);
+                }
+                sec.appendChild(it);
+            });
+            host.appendChild(sec);
+        });
+    }
+
+    // ============================================
+    // MIC: WHISPER + WAVEFORM (on-device, batch on stop)
+    // ============================================
     async function initWhisper() {
         if (whisperLoaded || whisperLoading) return;
         whisperLoading = true;
         whisperLoadError = null;
         try {
             await whisperLoad((p) => {
-                // p shape: { status, file, progress (0-100), loaded, total }
                 if (p && typeof p.progress === 'number') {
                     whisperLoadProgress = Math.floor(p.progress);
-                    if (!isRecording) {
-                        // Reflect download progress in the mic-hint area.
-                        $('micHint').textContent = `Loading Whisper: ${whisperLoadProgress}%`;
+                    if (!isRecording && !isTranscribing) {
+                        setRecordingState(null, `loading whisper ${whisperLoadProgress}%`);
                     }
                 }
             });
-            whisperLoaded  = true;
+            whisperLoaded = true;
             whisperLoading = false;
             whisperLoadProgress = 100;
-            if (!isRecording) {
-                $('micHint').textContent = 'Tap to dictate';
-            }
+            if (!isRecording && !isTranscribing) setRecordingState(null, 'idle');
         } catch (err) {
             console.error('whisper load failed:', err);
             whisperLoading = false;
             whisperLoadError = err && err.message ? err.message : String(err);
-            $('micHint').textContent = 'Mic offline (model load failed)';
+            setRecordingState('warn', 'mic offline - reload on wifi');
             $('micBtn').disabled = true;
             $('micBtn').title = 'Whisper failed to load. Reload on a wifi connection.';
         }
@@ -1349,11 +1644,8 @@
 
     function toggleRecording() {
         if (!whisperLoaded) {
-            if (whisperLoadError) {
-                showToast('mic engine unavailable - reload on wifi', true);
-            } else {
-                showToast(`whisper still loading (${whisperLoadProgress}%)`, true);
-            }
+            if (whisperLoadError) showToast('mic engine unavailable - reload on wifi', true);
+            else showToast(`whisper still loading (${whisperLoadProgress}%)`, true);
             return;
         }
         if (isRecording) stopRecording();
@@ -1362,9 +1654,6 @@
 
     async function startRecording() {
         if (isRecording) return;
-
-        // Flip into "recording" mode immediately so a second mic-tap stops it
-        // mid-handshake. We start in the "connecting" state.
         isRecording        = true;
         recordingStartedAt = Date.now();
         const connectingStartedAt = Date.now();
@@ -1372,32 +1661,25 @@
         connectedAt        = null;
         audioChunks        = [];
         $('micBtn').classList.add('recording');
-        $('micHint').textContent = 'Tap to stop and transcribe';
-        activateRecordingPanel();
+        $('recordingPanel').classList.add('active');
         setRecordingState('live', 'connecting...');
 
-        // 1) Get a mic stream we control, for the waveform AND for MediaRecorder.
         try {
             mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (err) {
             console.error('getUserMedia failed:', err);
-            if (err && err.name === 'NotAllowedError') {
-                showToast('microphone permission denied', true);
-            } else {
-                showToast('cannot access microphone', true);
-            }
-            stopRecording();
+            if (err && err.name === 'NotAllowedError') showToast('microphone permission denied', true);
+            else showToast('cannot access microphone', true);
+            await stopRecording();
             return;
         }
 
-        // If user tapped mic again while we were waiting for permission
         if (!isRecording) {
             mediaStream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
             mediaStream = null;
             return;
         }
 
-        // 2) Wire up the analyser graph for the waveform.
         try {
             const Ctx = window.AudioContext || window.webkitAudioContext;
             audioContext = new Ctx();
@@ -1408,10 +1690,8 @@
             source.connect(analyser);
         } catch (err) {
             console.error('audio analyser setup failed:', err);
-            // Non-fatal - recording continues without the waveform.
         }
 
-        // 3) Start MediaRecorder to capture the actual audio for Whisper.
         try {
             mediaRecorder = new MediaRecorder(mediaStream);
             mediaRecorder.ondataavailable = (e) => {
@@ -1421,44 +1701,28 @@
         } catch (err) {
             console.error('MediaRecorder failed to start:', err);
             showToast('cannot start recorder', true);
-            stopRecording();
+            await stopRecording();
             return;
         }
 
-        // 4) Hold "connecting..." for a beat so the user sees it,
-        //    then flip to "recording" and let the normal state take over.
         const elapsed = Date.now() - connectingStartedAt;
         const wait = Math.max(0, CONNECTING_MIN_MS - elapsed);
-        if (wait > 0) {
-            await new Promise(r => setTimeout(r, wait));
-        }
-        if (!isRecording) return; // user cancelled mid-handshake
+        if (wait > 0) await new Promise(r => setTimeout(r, wait));
+        if (!isRecording) return;
 
         connectedAt = Date.now();
         setRecordingState('live', 'recording');
-
-        // 5) Kick off the render + status loops.
         startWaveform();
-        if (!recordingTimerId) {
-            recordingTimerId = setInterval(updateRecordingMeta, 200);
-        }
+        if (!recordingTimerId) recordingTimerId = setInterval(updateRecordingMeta, 200);
     }
 
     async function stopRecording() {
         if (!isRecording) return;
         isRecording = false;
 
-        // 1) Stop the waveform render loop and meta timer immediately.
-        if (waveformAnimId) {
-            cancelAnimationFrame(waveformAnimId);
-            waveformAnimId = null;
-        }
-        if (recordingTimerId) {
-            clearInterval(recordingTimerId);
-            recordingTimerId = null;
-        }
+        if (waveformAnimId) { cancelAnimationFrame(waveformAnimId); waveformAnimId = null; }
+        if (recordingTimerId) { clearInterval(recordingTimerId); recordingTimerId = null; }
 
-        // 2) Stop MediaRecorder and wait for the final audio chunk.
         let audioBlob = null;
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             await new Promise((resolve) => {
@@ -1472,23 +1736,16 @@
         }
         mediaRecorder = null;
 
-        // 3) Release the audio graph + mic now that recording is done.
-        if (audioContext) {
-            try { audioContext.close(); } catch (_) { /* ignore */ }
-            audioContext = null;
-        }
+        if (audioContext) { try { audioContext.close(); } catch (_) {} audioContext = null; }
         analyser = null;
         if (mediaStream) {
             mediaStream.getTracks().forEach(t => { try { t.stop(); } catch (_) {} });
             mediaStream = null;
         }
 
-        // 4) Run Whisper on the audio blob if we got one. UI stays in
-        //    "transcribing" state during this. Audio blob is discarded
-        //    after transcription - never written to disk or network.
         if (audioBlob && audioBlob.size > 0) {
-            $('micBtn').classList.add('recording'); // keep visual cue during transcribe
-            $('micHint').textContent = 'Transcribing...';
+            isTranscribing = true;
+            $('micBtn').classList.add('recording');
             setRecordingState('transcribing', 'transcribing...');
             $('recordingTime').textContent = '...';
             try {
@@ -1505,26 +1762,20 @@
                 console.error('whisper transcribe failed:', err);
                 showToast('transcription failed - try again', true);
             }
+            isTranscribing = false;
         }
-        // Free the chunks regardless of success.
         audioChunks = [];
         audioBlob = null;
 
-        // UI back to disconnected idle
         $('micBtn').classList.remove('recording');
-        $('micHint').textContent = 'Tap to dictate';
-        deactivateRecordingPanel();
-        setRecordingState(null, 'disconnected');
+        $('recordingPanel').classList.remove('active');
+        setRecordingState(null, 'idle');
         $('recordingTime').textContent = '0:00';
         clearWaveformCanvas();
         connectedAt = null;
     }
 
-    // Called from openEntry - primes the panel for a fresh entry
-    function resetRecordingPanel() {
-        deactivateRecordingPanel();
-        setRecordingState(null, 'disconnected');
-        $('recordingTime').textContent = '0:00';
+    function sizeWaveformCanvas() {
         const canvas = $('waveform');
         const dpr = window.devicePixelRatio || 1;
         const rect = canvas.getBoundingClientRect();
@@ -1532,22 +1783,6 @@
             canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
             canvas.height = Math.max(1, Math.floor(rect.height * dpr));
         }
-        clearWaveformCanvas();
-    }
-
-    function activateRecordingPanel() {
-        $('recordingPanel').classList.add('active');
-        const canvas = $('waveform');
-        const dpr = window.devicePixelRatio || 1;
-        const rect = canvas.getBoundingClientRect();
-        if (rect.width && rect.height) {
-            canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
-            canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-        }
-    }
-
-    function deactivateRecordingPanel() {
-        $('recordingPanel').classList.remove('active');
     }
 
     function clearWaveformCanvas() {
@@ -1574,20 +1809,13 @@
     function updateRecordingMeta() {
         if (!isRecording) return;
         const now = Date.now();
-        const elapsed = now - recordingStartedAt;
-        $('recordingTime').textContent = fmtTime(elapsed);
+        $('recordingTime').textContent = fmtTime(now - recordingStartedAt);
 
-        // Hold "connected" for a beat after handshake.
         if (connectedAt && now - connectedAt < CONNECTED_HOLD_MS) {
             setRecordingState('live', 'connected');
             return;
         }
-
-        // After the handshake hold: simple state machine.
-        // Whisper transcribes on stop, so during recording we only show
-        // "recording", "speech detected" (recent sound), or "no audio detected"
-        // (silent for 3+ seconds since handshake settled).
-        const sinceListening = connectedAt ? (now - (connectedAt + CONNECTED_HOLD_MS)) : elapsed;
+        const sinceListening = connectedAt ? (now - (connectedAt + CONNECTED_HOLD_MS)) : (now - recordingStartedAt);
         if (lastSoundAt && now - lastSoundAt < 800) {
             setRecordingState('live', 'speech detected');
         } else if (sinceListening > 3000 && (!lastSoundAt || now - lastSoundAt > 3000)) {
@@ -1597,13 +1825,9 @@
         }
     }
 
-    function inHandshake() {
-        if (!connectedAt) return true;
-        return Date.now() - connectedAt < CONNECTED_HOLD_MS;
-    }
-
     function startWaveform() {
         if (!analyser) return;
+        sizeWaveformCanvas();
         const canvas = $('waveform');
         const ctx = canvas.getContext('2d');
         const bufferLength = analyser.frequencyBinCount;
@@ -1615,7 +1839,6 @@
         function draw() {
             waveformAnimId = requestAnimationFrame(draw);
             if (!analyser) return;
-
             analyser.getByteTimeDomainData(dataArray);
 
             const W = canvas.width;
@@ -1626,7 +1849,7 @@
             const gap  = (W - BAR_COUNT * barW) / (BAR_COUNT - 1);
             let peak   = 0;
 
-            ctx.fillStyle = '#d4c4b5';
+            ctx.fillStyle = '#F0A178';
 
             for (let i = 0; i < BAR_COUNT; i++) {
                 let sumSq = 0;
@@ -1644,262 +1867,77 @@
                 ctx.fillRect(x, y, barW, barH);
             }
 
-            if (peak > 0.04) {
-                lastSoundAt = Date.now();
-            }
+            if (peak > 0.04) lastSoundAt = Date.now();
         }
-
         draw();
     }
 
     // ============================================
-    // RENDERERS FOR THE LIST PANELS
+    // WIRING
     // ============================================
-    function renderNetwork() {
-        const host = $('networkList');
-        if (!host) return;
-        host.innerHTML = '';
-        if (!networkData || !Array.isArray(networkData.people) || networkData.people.length === 0) {
-            renderEmpty(host, 'No network list yet.', 'Chat with Cowork to build your contacts list.');
-            return;
-        }
-        const buckets = {};
-        const order = ['warm-lead','miami-alumni','alcova','pratt-prof','pratt-colleague','industry','fabricator','gallery','network-bridge'];
-        const labels = {
-            'warm-lead':       'Active warm leads',
-            'miami-alumni':    'Miami group show alumni',
-            'alcova':          'Alcova team',
-            'pratt-prof':      'Pratt - professors',
-            'pratt-colleague': 'Pratt - colleagues',
-            'industry':        'Industry designers',
-            'fabricator':      'Fabricators',
-            'gallery':         'Galleries',
-            'network-bridge':  'Network bridges'
-        };
-        networkData.people.forEach(p => {
-            const cat = p.category || 'industry';
-            if (!buckets[cat]) buckets[cat] = [];
-            buckets[cat].push(p);
-        });
-        order.forEach(cat => {
-            const list = buckets[cat];
-            if (!list || list.length === 0) return;
-            const section = document.createElement('div');
-            section.className = 'list-section';
-            const title = document.createElement('div');
-            title.className = 'list-section-title';
-            title.textContent = labels[cat] || cat;
-            section.appendChild(title);
-            list.forEach(p => {
-                const item = document.createElement('div');
-                item.className = 'list-item';
-                const row = document.createElement('div');
-                row.className = 'list-item-row';
-                const name = document.createElement('div');
-                name.className = 'list-item-name';
-                name.textContent = p.name || '';
-                row.appendChild(name);
-                if (p.status && p.status !== 'not-contacted') {
-                    const status = document.createElement('div');
-                    status.className = 'list-item-status ' + p.status;
-                    status.textContent = p.status.replace(/-/g, ' ');
-                    row.appendChild(status);
-                }
-                item.appendChild(row);
-                if (p.context) {
-                    const ctx = document.createElement('div');
-                    ctx.className = 'list-item-context';
-                    ctx.textContent = p.context;
-                    item.appendChild(ctx);
-                }
-                if (p.last_contact) {
-                    const meta = document.createElement('div');
-                    meta.className = 'list-item-meta';
-                    meta.textContent = 'last contact: ' + p.last_contact;
-                    item.appendChild(meta);
-                }
-                section.appendChild(item);
-            });
-            host.appendChild(section);
-        });
-    }
-
-    function renderBrands() {
-        const host = $('brandsList');
-        if (!host) return;
-        host.innerHTML = '';
-        if (!brandsData || !Array.isArray(brandsData.brands) || brandsData.brands.length === 0) {
-            renderEmpty(host, 'No brand list yet.', 'Chat with Cowork to build your target brands list.');
-            return;
-        }
-        const section = document.createElement('div');
-        section.className = 'list-section';
-        const title = document.createElement('div');
-        title.className = 'list-section-title';
-        title.textContent = 'Brands you want to design experiences for';
-        section.appendChild(title);
-        brandsData.brands.forEach(b => {
-            const item = document.createElement('div');
-            item.className = 'list-item';
-            const row = document.createElement('div');
-            row.className = 'list-item-row';
-            const name = document.createElement('div');
-            name.className = 'list-item-name';
-            name.textContent = b.name || '';
-            row.appendChild(name);
-            if (b.fit) {
-                const status = document.createElement('div');
-                status.className = 'list-item-status' + (b.fit.includes('high') ? ' high' : '');
-                status.textContent = 'fit: ' + b.fit;
-                row.appendChild(status);
-            }
-            item.appendChild(row);
-            if (b.category) {
-                const meta = document.createElement('div');
-                meta.className = 'list-item-meta';
-                meta.textContent = b.category;
-                item.appendChild(meta);
-            }
-            if (b.notes) {
-                const ctx = document.createElement('div');
-                ctx.className = 'list-item-context';
-                ctx.textContent = b.notes;
-                item.appendChild(ctx);
-            }
-            if (b.ideal_project) {
-                const proj = document.createElement('div');
-                proj.className = 'list-item-context';
-                proj.textContent = 'Ideal: ' + b.ideal_project;
-                item.appendChild(proj);
-            }
-            section.appendChild(item);
-        });
-        host.appendChild(section);
-    }
-
-    function renderStudios() {
-        const host = $('studiosList');
-        if (!host) return;
-        host.innerHTML = '';
-        if (!studiosData || !Array.isArray(studiosData.studios) || studiosData.studios.length === 0) {
-            renderEmpty(host, 'No studio list yet.', 'Chat with Cowork to build your target studios list.');
-            return;
-        }
-        const buckets = { employer: [], reference: [], partner: [] };
-        const labels = {
-            employer:  'Want to work at',
-            reference: 'Want to emulate',
-            partner:   'Fabrication / build partners'
-        };
-        studiosData.studios.forEach(s => {
-            const tk = s.track || 'employer';
-            if (buckets[tk]) buckets[tk].push(s);
-        });
-        ['employer', 'reference', 'partner'].forEach(track => {
-            const list = buckets[track];
-            if (!list || list.length === 0) return;
-            const section = document.createElement('div');
-            section.className = 'list-section';
-            const title = document.createElement('div');
-            title.className = 'list-section-title';
-            title.textContent = labels[track];
-            section.appendChild(title);
-            list.forEach(s => {
-                const item = document.createElement('div');
-                item.className = 'list-item';
-                const row = document.createElement('div');
-                row.className = 'list-item-row';
-                const name = document.createElement('div');
-                name.className = 'list-item-name';
-                name.textContent = s.name || '';
-                row.appendChild(name);
-                if (s.fit) {
-                    const status = document.createElement('div');
-                    status.className = 'list-item-status' + (s.fit.includes('high') ? ' high' : '');
-                    status.textContent = 'fit: ' + s.fit;
-                    row.appendChild(status);
-                }
-                item.appendChild(row);
-                if (s.location) {
-                    const meta = document.createElement('div');
-                    meta.className = 'list-item-meta';
-                    meta.textContent = s.location;
-                    item.appendChild(meta);
-                }
-                if (s.what_they_do) {
-                    const ctx = document.createElement('div');
-                    ctx.className = 'list-item-context';
-                    ctx.textContent = s.what_they_do;
-                    item.appendChild(ctx);
-                }
-                if (s.why_aligned) {
-                    const align = document.createElement('div');
-                    align.className = 'list-item-context';
-                    align.textContent = s.why_aligned;
-                    item.appendChild(align);
-                }
-                if (s.current_status) {
-                    const cs = document.createElement('div');
-                    cs.className = 'list-item-meta';
-                    cs.textContent = 'status: ' + s.current_status;
-                    item.appendChild(cs);
-                }
-                section.appendChild(item);
-            });
-            host.appendChild(section);
-        });
-    }
-
-    function renderEmpty(host, title, text) {
-        const empty = document.createElement('div');
-        empty.className = 'summary-empty';
-        const t = document.createElement('div');
-        t.className = 'summary-empty-title';
-        t.textContent = title;
-        const x = document.createElement('div');
-        x.className = 'summary-empty-text';
-        x.textContent = text;
-        empty.appendChild(t);
-        empty.appendChild(x);
-        host.appendChild(empty);
-    }
-
     function wireEvents() {
         $('connectBtn').addEventListener('click', () => {
             const token = $('patInput').value.trim();
-            if (!token) {
-                setPatStatus('paste a token first', true);
-                return;
-            }
+            if (!token) { setPatStatus('paste a token first', true); return; }
             connectWithToken(token);
         });
-
         $('patInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                $('connectBtn').click();
-            }
+            if (e.key === 'Enter') { e.preventDefault(); $('connectBtn').click(); }
         });
-
-        $('playBtn').addEventListener('click', openEntry);
-        $('cancelBtn').addEventListener('click', cancelEntry);
-        $('saveBtn').addEventListener('click', submitEntry);
-        $('micBtn').addEventListener('click', toggleRecording);
-        $('resetLink').addEventListener('click', resetConnection);
 
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => switchTab(tab.dataset.tab));
         });
 
+        $('saveBtn').addEventListener('click', submitEntry);
+        $('micBtn').addEventListener('click', toggleRecording);
+        $('resetLink').addEventListener('click', resetConnection);
+
+        $('catSelect').addEventListener('change', (e) => {
+            if (e.target.value === NEW_BUCKET) handleNewBucket(e.target, '');
+        });
+
         $('entryText').addEventListener('keydown', (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-                e.preventDefault();
-                submitEntry();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                cancelEntry();
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); submitEntry(); }
+        });
+
+        // Note editor overlay
+        $('noteSaveBtn').addEventListener('click', saveNoteEdit);
+        $('noteCancelBtn').addEventListener('click', closeNoteEditor);
+        $('noteDeleteBtn').addEventListener('click', deleteNote);
+        $('noteEditCat').addEventListener('change', (e) => {
+            if (e.target.value === NEW_BUCKET) handleNewBucket(e.target, '');
+        });
+        $('noteOverlay').addEventListener('click', (e) => {
+            if (e.target === $('noteOverlay')) closeNoteEditor();
+        });
+
+        // Task editor overlay + add form
+        $('addTaskBtn').addEventListener('click', () => toggleAddTaskForm(true));
+        $('newTaskCancel').addEventListener('click', () => toggleAddTaskForm(false));
+        $('newTaskAdd').addEventListener('click', addTask);
+        $('newTaskText').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); addTask(); }
+        });
+        $('taskSaveBtn').addEventListener('click', saveTaskEdit);
+        $('taskCancelBtn').addEventListener('click', closeTaskEditor);
+        $('taskDeleteBtn').addEventListener('click', deleteTask);
+        $('taskOverlay').addEventListener('click', (e) => {
+            if (e.target === $('taskOverlay')) closeTaskEditor();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if ($('noteOverlay').classList.contains('is-open')) closeNoteEditor();
+                else if ($('taskOverlay').classList.contains('is-open')) closeTaskEditor();
             }
         });
+
+        // Refetch on focus / visibility so the app never sits stale.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') refetchIfStale();
+        });
+        window.addEventListener('focus', () => refetchIfStale());
     }
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -1907,7 +1945,6 @@
             el.textContent = `v${APP_VERSION}`;
         });
         wireEvents();
-        // Kick off the Whisper model load in the background. Idempotent.
         initWhisper();
         initializeConnection();
     });
