@@ -197,7 +197,7 @@
            edge of the grid canvas, anchored top. */
         #appScreen {
             flex-direction: row;
-            padding: 14px calc(6px + env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) 14px;
+            padding: 42px calc(6px + env(safe-area-inset-right, 0px)) calc(42px + env(safe-area-inset-bottom, 0px)) 14px;
             gap: 6px;
         }
 
@@ -505,6 +505,9 @@
         .add-task-form { display: none; flex-direction: column; gap: 8px; margin: 12px 0 4px; flex-shrink: 0; }
         .add-task-form.open { display: flex; }
         .add-task-form input[type="date"] { color-scheme: dark; }
+        .task-input-row { display: flex; gap: 8px; align-items: stretch; }
+        .task-input-row .frc-input { flex: 1; min-width: 0; }
+        .mic-btn--sm { width: 46px; height: auto; }
 
         .review-block { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
         .review-section { margin-bottom: 14px; }
@@ -602,7 +605,7 @@
 
         /* compact type on small screens (matches the article pages) */
         @media (max-width: 600px) {
-            #appScreen { padding: 10px calc(4px + env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) 10px; }
+            #appScreen { padding: 30px calc(4px + env(safe-area-inset-right, 0px)) calc(30px + env(safe-area-inset-bottom, 0px)) 10px; }
             .fg-panel { padding: 18px 14px 16px; }
             .tabbar { width: 38px; gap: 12px; padding: 150px 0 0; }
             #capturePanel { padding: 24px 0 32px; }
@@ -697,7 +700,18 @@
                     <div id="taskList"></div>
                     <button id="addTaskBtn" class="frc-btn frc-btn--dashed add-task-btn">+ Add Task</button>
                     <div id="addTaskForm" class="add-task-form">
-                        <input id="newTaskText" class="frc-input" type="text" placeholder="what needs to happen...">
+                        <div class="task-input-row">
+                            <input id="newTaskText" class="frc-input" type="text" placeholder="what needs to happen, or dictate...">
+                            <button id="taskMicBtn" class="mic-btn mic-btn--sm" aria-label="Dictate task">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                     stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="9" y="3" width="6" height="12" rx="3"/>
+                                    <path d="M5 11a7 7 0 0 0 14 0"/>
+                                    <line x1="12" y1="18" x2="12" y2="22"/>
+                                    <line x1="8" y1="22" x2="16" y2="22"/>
+                                </svg>
+                            </button>
+                        </div>
                         <input id="newTaskDue" class="frc-input" type="date" aria-label="Due date (optional)">
                         <div class="frc-row2">
                             <button id="newTaskCancel" class="frc-btn">Cancel</button>
@@ -791,7 +805,7 @@
     // ============================================
     // App version. Bumped automatically by finish.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '3.0.6';
+    const APP_VERSION = '3.0.7';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
@@ -829,6 +843,8 @@
     let isRecording         = false;
     let isTranscribing      = false;
     let usedVoiceThisEntry  = false;
+    let dictationTarget     = null;  // the input/textarea receiving the transcript
+    let dictationBtn        = null;  // the mic button reflecting recording state
     let mediaStream         = null;
     let audioContext        = null;
     let analyser            = null;
@@ -1520,6 +1536,7 @@
     }
 
     async function addTask() {
+        if (isRecording) await stopRecording(); // fold a pending dictation in first
         const text = $('newTaskText').value.trim();
         const due = $('newTaskDue').value || null;
         if (!text) { showToast('task is empty', true); $('newTaskText').focus(); return; }
@@ -1548,6 +1565,7 @@
     }
 
     function toggleAddTaskForm(open) {
+        if (!open && isRecording && dictationTarget && dictationTarget.id === 'newTaskText') stopRecording();
         $('addTaskForm').classList.toggle('open', open);
         $('addTaskBtn').style.display = open ? 'none' : '';
         if (open) setTimeout(() => $('newTaskText').focus(), 60);
@@ -1692,30 +1710,39 @@
             setRecordingState('warn', 'mic offline - reload on wifi');
             $('micBtn').disabled = true;
             $('micBtn').title = 'Whisper failed to load. Reload on a wifi connection.';
+            $('taskMicBtn').disabled = true;
         }
     }
 
-    function toggleRecording() {
+    // Dictation is target-aware: the capture screen gets the full UI
+    // (waveform, states, timer); other targets just pulse their button.
+    function isCaptureDictation() { return dictationBtn && dictationBtn.id === 'micBtn'; }
+
+    function toggleRecording(targetId = 'entryText', btnId = 'micBtn') {
         if (!whisperLoaded) {
             if (whisperLoadError) showToast('mic engine unavailable - reload on wifi', true);
             else showToast(`whisper still loading (${whisperLoadProgress}%)`, true);
             return;
         }
         if (isRecording) stopRecording();
-        else startRecording();
+        else startRecording($(targetId), $(btnId));
     }
 
-    async function startRecording() {
+    async function startRecording(target, btn) {
         if (isRecording) return;
+        dictationTarget    = target || $('entryText');
+        dictationBtn       = btn || $('micBtn');
         isRecording        = true;
         recordingStartedAt = Date.now();
         const connectingStartedAt = Date.now();
         lastSoundAt        = null;
         connectedAt        = null;
         audioChunks        = [];
-        $('micBtn').classList.add('recording');
-        $('recordingPanel').classList.add('active');
-        setRecordingState('live', 'connecting...');
+        dictationBtn.classList.add('recording');
+        if (isCaptureDictation()) {
+            $('recordingPanel').classList.add('active');
+            setRecordingState('live', 'connecting...');
+        }
 
         try {
             mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1764,9 +1791,11 @@
         if (!isRecording) return;
 
         connectedAt = Date.now();
-        setRecordingState('live', 'recording');
-        startWaveform();
-        if (!recordingTimerId) recordingTimerId = setInterval(updateRecordingMeta, 200);
+        if (isCaptureDictation()) {
+            setRecordingState('live', 'recording');
+            startWaveform();
+            if (!recordingTimerId) recordingTimerId = setInterval(updateRecordingMeta, 200);
+        }
     }
 
     async function stopRecording() {
@@ -1798,16 +1827,18 @@
 
         if (audioBlob && audioBlob.size > 0) {
             isTranscribing = true;
-            $('micBtn').classList.add('recording');
-            setRecordingState('transcribing', 'transcribing...');
-            $('recordingTime').textContent = '...';
+            const target = dictationTarget || $('entryText');
+            (dictationBtn || $('micBtn')).classList.add('recording');
+            if (isCaptureDictation()) {
+                setRecordingState('transcribing', 'transcribing...');
+                $('recordingTime').textContent = '...';
+            }
             try {
                 const text = await whisperTranscribe(audioBlob);
                 if (text && text.trim()) {
-                    const ta = $('entryText');
-                    const sep = ta.value && !/\s$/.test(ta.value) ? ' ' : '';
-                    ta.value = (ta.value + sep + text.trim()).trimStart();
-                    usedVoiceThisEntry = true;
+                    const sep = target.value && !/\s$/.test(target.value) ? ' ' : '';
+                    target.value = (target.value + sep + text.trim()).trimStart();
+                    if (target.id === 'entryText') usedVoiceThisEntry = true;
                 } else {
                     showToast('no speech detected', true);
                 }
@@ -1820,12 +1851,16 @@
         audioChunks = [];
         audioBlob = null;
 
-        $('micBtn').classList.remove('recording');
-        $('recordingPanel').classList.remove('active');
-        setRecordingState(null, 'idle');
-        $('recordingTime').textContent = '0:00';
-        clearWaveformCanvas();
+        (dictationBtn || $('micBtn')).classList.remove('recording');
+        if (isCaptureDictation()) {
+            $('recordingPanel').classList.remove('active');
+            setRecordingState(null, 'idle');
+            $('recordingTime').textContent = '0:00';
+            clearWaveformCanvas();
+        }
         connectedAt = null;
+        dictationTarget = null;
+        dictationBtn = null;
     }
 
     function sizeWaveformCanvas() {
@@ -1943,7 +1978,8 @@
         });
 
         $('saveBtn').addEventListener('click', submitEntry);
-        $('micBtn').addEventListener('click', toggleRecording);
+        $('micBtn').addEventListener('click', () => toggleRecording('entryText', 'micBtn'));
+        $('taskMicBtn').addEventListener('click', () => toggleRecording('newTaskText', 'taskMicBtn'));
 
         $('catSelect').addEventListener('change', (e) => {
             if (e.target.value === NEW_BUCKET) handleNewBucket(e.target, '');
