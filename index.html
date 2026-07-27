@@ -452,19 +452,14 @@
         .sheet-empty .frc-note { margin: 0; font-size: 10px; letter-spacing: 0.22em; color: var(--dim); text-transform: uppercase; }
 
         /* ================ WEEK ================ */
-        .week-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
-        .task-row {
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-            padding: 10px 2px;
-            border-bottom: 1px solid var(--line);
-        }
+        /* Tasks are sheet rows (same as Notes) - mono meta on top, serif
+           text below. The only difference is the checkbox. */
+        .task-line { display: flex; gap: 10px; align-items: flex-start; margin-top: 2px; }
         .task-check {
             width: 16px;
             height: 16px;
             flex-shrink: 0;
-            margin-top: 2px;
+            margin-top: 4px;
             border: 1px solid var(--dim);
             border-radius: 2px;
             background: transparent;
@@ -477,54 +472,16 @@
         }
         .task-check:hover { border-color: var(--peach-50); }
         .task-check svg { width: 10px; height: 10px; display: none; }
-        .task-row.overdue .task-check { border-color: var(--peach-100); }
-        .task-row.done .task-check { background: var(--peach-50); border-color: var(--peach-50); }
-        .task-row.done .task-check svg { display: block; color: #0a0a0a; }
-        .task-main { flex: 1; min-width: 0; cursor: pointer; }
-        .task-text {
-            font-size: 12px;
-            line-height: 1.5;
-            color: var(--ink);
-            word-break: break-word;
-        }
-        .task-row.done .task-text { color: var(--faint); text-decoration: line-through; }
-        .task-added {
-            font-size: 9px;
-            letter-spacing: 0.12em;
-            color: var(--faint);
-            text-transform: uppercase;
-            margin-top: 2px;
-        }
-        .task-side {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 4px;
-            flex-shrink: 0;
-            margin-top: 2px;
-        }
-        .task-due {
-            font-size: 9px;
-            letter-spacing: 0.12em;
-            color: var(--dim);
-            text-transform: uppercase;
-            font-variant-numeric: tabular-nums;
-        }
-        .task-row.overdue .task-due { color: var(--peach-100); }
-        .task-row.today .task-due { color: var(--peach-75); }
-
-        .task-tag {
-            font-size: 9px;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            border: 1px solid var(--line);
-            border-radius: 2px;
-            padding: 2px 6px;
-            color: var(--dim);
-        }
-        .task-tag--urgent { border-color: var(--peach-100); color: var(--peach-100); }
-        .task-tag--long-term { border-color: var(--line); color: var(--dim); }
-        .task-tag--completed { border-color: var(--line); color: var(--peach-50); }
+        .sheet-row.overdue .task-check { border-color: var(--peach-100); }
+        .sheet-row.done .task-check { background: var(--peach-50); border-color: var(--peach-50); }
+        .sheet-row.done .task-check svg { display: block; color: #0a0a0a; }
+        .sheet-row.done .sheet-row-text { color: var(--faint); text-decoration: line-through; }
+        .due-inline { color: var(--dim); }
+        .sheet-row.overdue .due-inline { color: var(--peach-100); }
+        .sheet-row.today .due-inline { color: var(--peach-75); }
+        .tag-flag--urgent { color: var(--peach-100); }
+        .tag-flag--done { color: var(--peach-50); }
+        .tag-flag--other { color: var(--dim); }
 
         .add-task-btn { margin: 12px 0 4px; flex-shrink: 0; }
         .add-task-form { display: none; flex-direction: column; gap: 8px; margin: 12px 0 4px; flex-shrink: 0; }
@@ -720,33 +677,27 @@
                     <div class="app-brand">FRC<span class="ver" data-version></span></div>
                     <div class="app-meta" data-meta="date"></div>
                 </div>
-                <div class="week-scroll">
-                    <div class="label" style="margin-bottom:4px;">This week</div>
-                    <div id="taskList"></div>
-                    <button id="addTaskBtn" class="frc-btn frc-btn--dashed add-task-btn">+ Add Task</button>
-                    <div id="addTaskForm" class="add-task-form">
-                        <div class="task-input-row">
-                            <input id="newTaskText" class="frc-input" type="text" placeholder="what needs to happen, or dictate...">
-                            <button id="taskMicBtn" class="mic-btn mic-btn--sm" aria-label="Dictate task">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
-                                     stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="9" y="3" width="6" height="12" rx="3"/>
-                                    <path d="M5 11a7 7 0 0 0 14 0"/>
-                                    <line x1="12" y1="18" x2="12" y2="22"/>
-                                    <line x1="8" y1="22" x2="16" y2="22"/>
-                                </svg>
-                            </button>
-                        </div>
-                        <input id="newTaskDue" class="frc-input" type="date" aria-label="Due date (optional)">
-                        <select id="newTaskTag" class="frc-select" aria-label="Tag (optional)">
-                            <option value="">/ no tag</option>
-                            <option value="urgent">URGENT</option>
-                            <option value="long-term">LONG TERM</option>
-                        </select>
-                        <div class="frc-row2">
-                            <button id="newTaskCancel" class="frc-btn">Cancel</button>
-                            <button id="newTaskAdd" class="frc-btn frc-btn--primary">Add</button>
-                        </div>
+                <div class="chip-row" id="taskChipRow"></div>
+                <div class="sheet" id="taskList"></div>
+                <button id="addTaskBtn" class="frc-btn frc-btn--dashed add-task-btn">+ Add Task</button>
+                <div id="addTaskForm" class="add-task-form">
+                    <div class="task-input-row">
+                        <input id="newTaskText" class="frc-input" type="text" placeholder="what needs to happen, or dictate...">
+                        <button id="taskMicBtn" class="mic-btn mic-btn--sm" aria-label="Dictate task">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                                 stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="9" y="3" width="6" height="12" rx="3"/>
+                                <path d="M5 11a7 7 0 0 0 14 0"/>
+                                <line x1="12" y1="18" x2="12" y2="22"/>
+                                <line x1="8" y1="22" x2="16" y2="22"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <input id="newTaskDue" class="frc-input" type="date" aria-label="Due date (optional)">
+                    <select id="newTaskTag" class="frc-select" aria-label="Tag (optional)"></select>
+                    <div class="frc-row2">
+                        <button id="newTaskCancel" class="frc-btn">Cancel</button>
+                        <button id="newTaskAdd" class="frc-btn frc-btn--primary">Add</button>
                     </div>
                 </div>
             </div>
@@ -828,11 +779,7 @@
             <div class="overlay-meta"><span id="taskEditMeta">TASK</span></div>
             <input id="taskEditText" class="frc-input" type="text">
             <input id="taskEditDue" class="frc-input" type="date" aria-label="Due date (optional)">
-            <select id="taskEditTag" class="frc-select" aria-label="Tag (optional)">
-                <option value="">/ no tag</option>
-                <option value="urgent">URGENT</option>
-                <option value="long-term">LONG TERM</option>
-            </select>
+            <select id="taskEditTag" class="frc-select" aria-label="Tag (optional)"></select>
             <div class="frc-row2">
                 <button id="taskDeleteBtn" class="frc-btn frc-btn--danger">Delete</button>
                 <button id="taskCancelBtn" class="frc-btn">Cancel</button>
@@ -859,7 +806,7 @@
     // ============================================
     // App version. Bumped automatically by finish.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '3.0.8';
+    const APP_VERSION = '3.0.9';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
@@ -874,6 +821,9 @@
     const DEFAULT_CATEGORIES = ['Practice', 'Inspiration', 'Context', 'Business Development', 'Marketing'];
     const UNSORTED = '__unsorted';
     const NEW_BUCKET = '__new';
+    const DEFAULT_TASK_TAGS = ['urgent', 'long-term'];
+    const NEW_TAG = '__newtag';
+    const COMPLETED = '__completed';
 
     const dataPath = (year)  => `data-${year}.json`;
     const dataUrl  = (path)  => `https://api.github.com/repos/${DATA_OWNER}/${DATA_REPO}/contents/${path}`;
@@ -889,6 +839,7 @@
 
     let activeTab    = 'capture';
     let notesFilter  = 'all'; // 'all' | UNSORTED | category name
+    let taskFilter   = 'all'; // 'all' | COMPLETED | tag name
     let editingNoteId = null;
     let editingTaskId = null;
     let lastFetchAt  = 0;
@@ -993,6 +944,14 @@
         if (cfg && Array.isArray(cfg.categories) && cfg.categories.length) return cfg.categories;
         return DEFAULT_CATEGORIES;
     }
+
+    function taskTags() {
+        const cfg = jsonCache[CONFIG_PATH];
+        if (cfg && Array.isArray(cfg.task_tags) && cfg.task_tags.length) return cfg.task_tags;
+        return DEFAULT_TASK_TAGS;
+    }
+
+    function tagDisplay(tag) { return String(tag).replace(/-/g, ' '); }
 
     function overlayOpen() {
         return document.querySelector('.frc-overlay.is-open') !== null;
@@ -1215,6 +1174,7 @@
     function renderAll() {
         renderTopMeta();
         renderCatSelects();
+        renderTagSelects();
         renderNotes();
         renderTasks();
         renderReview();
@@ -1264,6 +1224,57 @@
         const prevCapture = $('catSelect').value;
         build($('catSelect'), true, prevCapture && prevCapture !== NEW_BUCKET ? prevCapture : '');
         build($('noteEditCat'), true);
+    }
+
+    // Fill both task-tag <select>s from config.
+    function renderTagSelects() {
+        const tags = taskTags();
+        const build = (sel, current) => {
+            if (!sel) return;
+            sel.innerHTML = '';
+            const none = document.createElement('option');
+            none.value = '';
+            none.textContent = '/ no tag';
+            sel.appendChild(none);
+            tags.forEach(t => {
+                const o = document.createElement('option');
+                o.value = t;
+                o.textContent = tagDisplay(t).toUpperCase();
+                sel.appendChild(o);
+            });
+            const n = document.createElement('option');
+            n.value = NEW_TAG;
+            n.textContent = '+ new tag...';
+            sel.appendChild(n);
+            if (current !== undefined) sel.value = current;
+        };
+        const prevNew = $('newTaskTag').value;
+        build($('newTaskTag'), prevNew && prevNew !== NEW_TAG ? prevNew : '');
+        build($('taskEditTag'));
+    }
+
+    // sel may be null (invoked from the "+" chip rather than a <select>).
+    async function handleNewTag(sel, fallbackValue) {
+        const name = (prompt('New tag name:') || '').trim();
+        if (!name) { if (sel) sel.value = fallbackValue; return; }
+        const existing = taskTags().find(t => t.toLowerCase() === name.toLowerCase());
+        if (existing) { renderTagSelects(); if (sel) sel.value = existing; return; }
+        try {
+            await mutateJsonFile(CONFIG_PATH, (doc) => {
+                if (!Array.isArray(doc.categories) || !doc.categories.length) doc.categories = [...DEFAULT_CATEGORIES];
+                if (!Array.isArray(doc.task_tags) || !doc.task_tags.length) doc.task_tags = [...DEFAULT_TASK_TAGS];
+                if (!doc.task_tags.some(t => t.toLowerCase() === name.toLowerCase())) doc.task_tags.push(name);
+                return doc;
+            }, `add tag ${name}`, { categories: [...DEFAULT_CATEGORIES], task_tags: [...DEFAULT_TASK_TAGS] });
+            renderTagSelects();
+            renderTasks();
+            if (sel) sel.value = name;
+            showToast(`tag added ${tagDisplay(name)}`);
+        } catch (err) {
+            console.error(err);
+            if (sel) sel.value = fallbackValue;
+            showToast('could not add tag', true);
+        }
     }
 
     // sel may be null (invoked from the "+" chip rather than a <select>).
@@ -1523,72 +1534,105 @@
     }
 
     function taskTagInfo(t) {
-        if (t.done) return { label: 'completed', cls: 'task-tag--completed' };
-        if (t.tag === 'urgent') return { label: 'urgent', cls: 'task-tag--urgent' };
-        if (t.tag === 'long-term') return { label: 'long term', cls: 'task-tag--long-term' };
+        if (t.done) return { label: 'completed', cls: 'tag-flag--done' };
+        if (t.tag === 'urgent') return { label: 'urgent', cls: 'tag-flag--urgent' };
+        if (t.tag) return { label: tagDisplay(t.tag), cls: 'tag-flag--other' };
         return null;
     }
 
+    function renderTagChips() {
+        const host = $('taskChipRow');
+        host.innerHTML = '';
+
+        const mk = (label, value, extraClass) => {
+            const b = document.createElement('button');
+            b.className = 'chip' + (extraClass ? ' ' + extraClass : '');
+            b.textContent = label;
+            if (value === taskFilter) b.classList.add('active');
+            b.addEventListener('click', () => { taskFilter = value; renderTasks(); });
+            return b;
+        };
+
+        host.appendChild(mk('All', 'all'));
+        taskTags().forEach(t => host.appendChild(mk(tagDisplay(t), t)));
+        host.appendChild(mk('completed', COMPLETED));
+
+        const plus = document.createElement('button');
+        plus.className = 'chip chip--new';
+        plus.textContent = '+';
+        plus.setAttribute('aria-label', 'Add tag');
+        plus.addEventListener('click', () => handleNewTag(null, ''));
+        host.appendChild(plus);
+    }
+
+    // Tasks render as sheet rows, same as Notes: mono meta line on top
+    // (added date + due, tag on the right), serif text below. The only
+    // difference is the checkbox.
     function renderTasks() {
+        renderTagChips();
         const host = $('taskList');
         host.innerHTML = '';
-        const tasks = (tasksDoc().tasks || []).slice().sort(taskSort);
+        let tasks = (tasksDoc().tasks || []).slice().sort(taskSort);
+        if (taskFilter === COMPLETED) tasks = tasks.filter(t => t.done);
+        else if (taskFilter !== 'all') tasks = tasks.filter(t => t.tag === taskFilter);
         const today = todayLocalStr();
 
         if (!tasks.length) {
+            const empty = document.createElement('div');
+            empty.className = 'sheet-empty';
             const p = document.createElement('p');
             p.className = 'frc-note';
-            p.style.cssText = 'font-size:10px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase;text-align:center;padding:18px 0;';
-            p.textContent = 'no tasks this week';
-            host.appendChild(p);
+            p.textContent = taskFilter === 'all' ? 'no tasks yet' : 'nothing here';
+            empty.appendChild(p);
+            host.appendChild(empty);
             return;
         }
 
         tasks.forEach(t => {
             const row = document.createElement('div');
-            row.className = 'task-row';
+            row.className = 'sheet-row';
             if (t.done) row.classList.add('done');
             else if (t.due && t.due < today) row.classList.add('overdue');
             else if (t.due === today) row.classList.add('today');
 
+            const meta = document.createElement('div');
+            meta.className = 'sheet-row-meta';
+            const left = document.createElement('span');
+            left.appendChild(document.createTextNode(t.created_at ? fmtNoteDate(t.created_at) : ''));
+            if (t.due) {
+                const due = document.createElement('span');
+                due.className = 'due-inline';
+                const bang = t.due < today && !t.done ? ' !' : '';
+                due.textContent = `${t.created_at ? ' · ' : ''}due ${fmtDue(t.due)}${bang}`;
+                left.appendChild(due);
+            }
+            meta.appendChild(left);
+            const tagInfo = taskTagInfo(t);
+            if (tagInfo) {
+                const right = document.createElement('span');
+                right.className = tagInfo.cls;
+                right.textContent = tagInfo.label;
+                meta.appendChild(right);
+            }
+            row.appendChild(meta);
+
+            const line = document.createElement('div');
+            line.className = 'task-line';
             const check = document.createElement('button');
             check.className = 'task-check';
             check.setAttribute('aria-label', t.done ? 'Mark not done' : 'Mark done');
             check.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M4 12.5 L9.5 18 L20 6.5"/></svg>';
             check.addEventListener('click', (e) => { e.stopPropagation(); toggleTask(t.id); });
-            row.appendChild(check);
+            line.appendChild(check);
 
-            const main = document.createElement('div');
-            main.className = 'task-main';
             const text = document.createElement('div');
-            text.className = 'task-text';
+            text.className = 'sheet-row-text';
+            text.style.flex = '1';
             text.textContent = t.text || '';
-            main.appendChild(text);
-            if (t.created_at) {
-                const added = document.createElement('div');
-                added.className = 'task-added';
-                added.textContent = `added ${fmtNoteDate(t.created_at)}`;
-                main.appendChild(added);
-            }
-            main.addEventListener('click', () => openTaskEditor(t.id));
-            row.appendChild(main);
+            line.appendChild(text);
+            row.appendChild(line);
 
-            const side = document.createElement('div');
-            side.className = 'task-side';
-            const tagInfo = taskTagInfo(t);
-            if (tagInfo) {
-                const tag = document.createElement('span');
-                tag.className = 'task-tag ' + tagInfo.cls;
-                tag.textContent = tagInfo.label;
-                side.appendChild(tag);
-            }
-            if (t.due) {
-                const due = document.createElement('div');
-                due.className = 'task-due';
-                due.textContent = t.due < today && !t.done ? `${fmtDue(t.due)} !` : fmtDue(t.due);
-                side.appendChild(due);
-            }
-            if (side.childNodes.length) row.appendChild(side);
+            row.addEventListener('click', () => openTaskEditor(t.id));
             host.appendChild(row);
         });
     }
@@ -1633,6 +1677,7 @@
         const due = $('newTaskDue').value || null;
         const tag = $('newTaskTag').value || null;
         if (!text) { showToast('task is empty', true); $('newTaskText').focus(); return; }
+        if (tag === NEW_TAG) { showToast('pick a tag first', true); return; }
         const btn = $('newTaskAdd');
         btn.disabled = true;
         try {
@@ -1690,6 +1735,7 @@
         const due = $('taskEditDue').value || null;
         const tag = $('taskEditTag').value || null;
         if (!text) { showToast('task is empty', true); return; }
+        if (tag === NEW_TAG) { showToast('pick a tag first', true); return; }
         try {
             await mutateJsonFile(TASKS_PATH, (doc) => {
                 if (!Array.isArray(doc.tasks)) doc.tasks = [];
@@ -2082,6 +2128,12 @@
 
         $('catSelect').addEventListener('change', (e) => {
             if (e.target.value === NEW_BUCKET) handleNewBucket(e.target, '');
+        });
+        $('newTaskTag').addEventListener('change', (e) => {
+            if (e.target.value === NEW_TAG) handleNewTag(e.target, '');
+        });
+        $('taskEditTag').addEventListener('change', (e) => {
+            if (e.target.value === NEW_TAG) handleNewTag(e.target, '');
         });
 
         $('entryText').addEventListener('keydown', (e) => {
