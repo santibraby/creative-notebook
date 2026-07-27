@@ -375,12 +375,12 @@
         .recording-time { color: var(--dim); font-variant-numeric: tabular-nums; }
         .recording-time.warn { color: var(--peach-100); }
 
-        /* ================ NOTES + WEEK: same centered column ================ */
-        #notesPanel, #weekPanel {
+        /* ================ NOTES + WEEK + REVIEW: same centered column ================ */
+        #notesPanel, #weekPanel, #reviewPanel {
             align-items: center;
             padding: 32px 2px 44px;
         }
-        #notesPanel > *, #weekPanel > * {
+        #notesPanel > *, #weekPanel > *, #reviewPanel > * {
             width: 100%;
             max-width: 420px;
         }
@@ -480,26 +480,51 @@
         .task-row.overdue .task-check { border-color: var(--peach-100); }
         .task-row.done .task-check { background: var(--peach-50); border-color: var(--peach-50); }
         .task-row.done .task-check svg { display: block; color: #0a0a0a; }
+        .task-main { flex: 1; min-width: 0; cursor: pointer; }
         .task-text {
-            flex: 1;
             font-size: 12px;
             line-height: 1.5;
             color: var(--ink);
-            cursor: pointer;
             word-break: break-word;
         }
         .task-row.done .task-text { color: var(--faint); text-decoration: line-through; }
+        .task-added {
+            font-size: 9px;
+            letter-spacing: 0.12em;
+            color: var(--faint);
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+        .task-side {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
         .task-due {
             font-size: 9px;
             letter-spacing: 0.12em;
             color: var(--dim);
             text-transform: uppercase;
-            flex-shrink: 0;
-            margin-top: 3px;
             font-variant-numeric: tabular-nums;
         }
         .task-row.overdue .task-due { color: var(--peach-100); }
         .task-row.today .task-due { color: var(--peach-75); }
+
+        .task-tag {
+            font-size: 9px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            padding: 2px 6px;
+            color: var(--dim);
+        }
+        .task-tag--urgent { border-color: var(--peach-100); color: var(--peach-100); }
+        .task-tag--long-term { border-color: var(--line); color: var(--dim); }
+        .task-tag--completed { border-color: var(--line); color: var(--peach-50); }
 
         .add-task-btn { margin: 12px 0 4px; flex-shrink: 0; }
         .add-task-form { display: none; flex-direction: column; gap: 8px; margin: 12px 0 4px; flex-shrink: 0; }
@@ -509,7 +534,7 @@
         .task-input-row .frc-input { flex: 1; min-width: 0; }
         .mic-btn--sm { width: 46px; height: auto; }
 
-        .review-block { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+        .review-scroll { flex: 1; min-height: 0; overflow-y: auto; }
         .review-section { margin-bottom: 14px; }
         .review-section .label { display: block; margin-bottom: 6px; }
         .review-item {
@@ -609,7 +634,7 @@
             .fg-panel { padding: 18px 14px 16px; }
             .tabbar { width: 38px; gap: 12px; padding: 150px 0 0; }
             #capturePanel { padding: 24px 0 32px; }
-            #notesPanel, #weekPanel { padding: 24px 0 30px; }
+            #notesPanel, #weekPanel, #reviewPanel { padding: 24px 0 30px; }
             #entryText { font-size: 16px; line-height: 1.65; }
             #noteEditText { font-size: 16px; line-height: 1.7; }
             .login-panel h1 { font-size: 30px; }
@@ -713,12 +738,27 @@
                             </button>
                         </div>
                         <input id="newTaskDue" class="frc-input" type="date" aria-label="Due date (optional)">
+                        <select id="newTaskTag" class="frc-select" aria-label="Tag (optional)">
+                            <option value="">/ no tag</option>
+                            <option value="urgent">URGENT</option>
+                            <option value="long-term">LONG TERM</option>
+                        </select>
                         <div class="frc-row2">
                             <button id="newTaskCancel" class="frc-btn">Cancel</button>
                             <button id="newTaskAdd" class="frc-btn frc-btn--primary">Add</button>
                         </div>
                     </div>
-                    <div class="review-block" id="reviewBlock"></div>
+                </div>
+            </div>
+
+            <!-- REVIEW -->
+            <div id="reviewPanel" class="panel">
+                <div class="app-top">
+                    <div class="app-brand">FRC<span class="ver" data-version></span></div>
+                    <div class="app-meta" data-meta="date"></div>
+                </div>
+                <div class="review-scroll">
+                    <div id="reviewBlock"></div>
                 </div>
             </div>
         </div>
@@ -747,6 +787,15 @@
                     <path d="M16 3v4"/>
                     <path d="M8 3v4"/>
                     <path d="M4 11h16"/>
+                </svg>
+            </button>
+            <button class="tab" data-tab="review" aria-label="Review" title="Review">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                     stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                    <path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/>
+                    <path d="M9 13h6"/>
+                    <path d="M9 17h6"/>
                 </svg>
             </button>
         </div>
@@ -779,6 +828,11 @@
             <div class="overlay-meta"><span id="taskEditMeta">TASK</span></div>
             <input id="taskEditText" class="frc-input" type="text">
             <input id="taskEditDue" class="frc-input" type="date" aria-label="Due date (optional)">
+            <select id="taskEditTag" class="frc-select" aria-label="Tag (optional)">
+                <option value="">/ no tag</option>
+                <option value="urgent">URGENT</option>
+                <option value="long-term">LONG TERM</option>
+            </select>
             <div class="frc-row2">
                 <button id="taskDeleteBtn" class="frc-btn frc-btn--danger">Delete</button>
                 <button id="taskCancelBtn" class="frc-btn">Cancel</button>
@@ -805,7 +859,7 @@
     // ============================================
     // App version. Bumped automatically by finish.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '3.0.7';
+    const APP_VERSION = '3.0.8';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
@@ -1447,15 +1501,32 @@
     }
 
     // ---------- TASKS ----------
+    // Tags: 'urgent' | 'long-term' are stored on the task; "completed" is
+    // derived from done. Sort: urgent first, untagged middle, long-term
+    // last; due dates order within each group; done sinks to the bottom.
+    function tagRank(t) {
+        if (t.tag === 'urgent') return 0;
+        if (t.tag === 'long-term') return 2;
+        return 1;
+    }
+
     function taskSort(a, b) {
         if (!!a.done !== !!b.done) return a.done ? 1 : -1;
         if (!a.done) {
+            if (tagRank(a) !== tagRank(b)) return tagRank(a) - tagRank(b);
             const ad = a.due || '9999-12-31';
             const bd = b.due || '9999-12-31';
             if (ad !== bd) return ad < bd ? -1 : 1;
             return (a.created_at || '') < (b.created_at || '') ? -1 : 1;
         }
         return (a.done_at || '') < (b.done_at || '') ? 1 : -1;
+    }
+
+    function taskTagInfo(t) {
+        if (t.done) return { label: 'completed', cls: 'task-tag--completed' };
+        if (t.tag === 'urgent') return { label: 'urgent', cls: 'task-tag--urgent' };
+        if (t.tag === 'long-term') return { label: 'long term', cls: 'task-tag--long-term' };
+        return null;
     }
 
     function renderTasks() {
@@ -1487,18 +1558,37 @@
             check.addEventListener('click', (e) => { e.stopPropagation(); toggleTask(t.id); });
             row.appendChild(check);
 
+            const main = document.createElement('div');
+            main.className = 'task-main';
             const text = document.createElement('div');
             text.className = 'task-text';
             text.textContent = t.text || '';
-            text.addEventListener('click', () => openTaskEditor(t.id));
-            row.appendChild(text);
+            main.appendChild(text);
+            if (t.created_at) {
+                const added = document.createElement('div');
+                added.className = 'task-added';
+                added.textContent = `added ${fmtNoteDate(t.created_at)}`;
+                main.appendChild(added);
+            }
+            main.addEventListener('click', () => openTaskEditor(t.id));
+            row.appendChild(main);
 
+            const side = document.createElement('div');
+            side.className = 'task-side';
+            const tagInfo = taskTagInfo(t);
+            if (tagInfo) {
+                const tag = document.createElement('span');
+                tag.className = 'task-tag ' + tagInfo.cls;
+                tag.textContent = tagInfo.label;
+                side.appendChild(tag);
+            }
             if (t.due) {
                 const due = document.createElement('div');
                 due.className = 'task-due';
                 due.textContent = t.due < today && !t.done ? `${fmtDue(t.due)} !` : fmtDue(t.due);
-                row.appendChild(due);
+                side.appendChild(due);
             }
+            if (side.childNodes.length) row.appendChild(side);
             host.appendChild(row);
         });
     }
@@ -1512,7 +1602,9 @@
             const p = (n) => String(n).padStart(2, '0');
             return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
         })();
-        const count = (tasksDoc().tasks || []).filter(t => !t.done && t.due && t.due <= horizon).length;
+        const count = (tasksDoc().tasks || []).filter(t =>
+            !t.done && (t.tag === 'urgent' || (t.due && t.due <= horizon))
+        ).length;
         badge.textContent = count;
         badge.classList.toggle('on', count > 0);
     }
@@ -1539,11 +1631,13 @@
         if (isRecording) await stopRecording(); // fold a pending dictation in first
         const text = $('newTaskText').value.trim();
         const due = $('newTaskDue').value || null;
+        const tag = $('newTaskTag').value || null;
         if (!text) { showToast('task is empty', true); $('newTaskText').focus(); return; }
         const btn = $('newTaskAdd');
         btn.disabled = true;
         try {
             const task = { id: uuid(), text, due, done: false, created_at: new Date().toISOString() };
+            if (tag) task.tag = tag;
             await mutateJsonFile(TASKS_PATH, (doc) => {
                 if (!Array.isArray(doc.tasks)) doc.tasks = [];
                 if (doc.tasks.some(x => x.id === task.id)) return null;
@@ -1552,6 +1646,7 @@
             }, `add task: ${text.slice(0, 48)}`, { tasks: [] });
             $('newTaskText').value = '';
             $('newTaskDue').value = '';
+            $('newTaskTag').value = '';
             toggleAddTaskForm(false);
             renderTasks();
             renderBadge();
@@ -1575,9 +1670,11 @@
         const t = (tasksDoc().tasks || []).find(x => x.id === id);
         if (!t) return;
         editingTaskId = id;
-        $('taskEditMeta').textContent = t.done ? 'task · done' : 'task';
+        const added = t.created_at ? ` · added ${fmtNoteDate(t.created_at)}` : '';
+        $('taskEditMeta').textContent = (t.done ? 'task · completed' : 'task') + added;
         $('taskEditText').value = t.text || '';
         $('taskEditDue').value = t.due || '';
+        $('taskEditTag').value = t.tag || '';
         $('taskOverlay').classList.add('is-open');
     }
 
@@ -1591,15 +1688,17 @@
         const id = editingTaskId;
         const text = $('taskEditText').value.trim();
         const due = $('taskEditDue').value || null;
+        const tag = $('taskEditTag').value || null;
         if (!text) { showToast('task is empty', true); return; }
         try {
             await mutateJsonFile(TASKS_PATH, (doc) => {
                 if (!Array.isArray(doc.tasks)) doc.tasks = [];
                 const t = doc.tasks.find(x => x.id === id);
                 if (!t) return null;
-                if (t.text === text && (t.due || null) === due) return null;
+                if (t.text === text && (t.due || null) === due && (t.tag || null) === tag) return null;
                 t.text = text;
                 if (due) t.due = due; else delete t.due;
+                if (tag) t.tag = tag; else delete t.tag;
                 return doc;
             }, `edit task ${id}`, { tasks: [] });
             closeTaskEditor();
