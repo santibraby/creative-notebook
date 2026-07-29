@@ -261,7 +261,7 @@
             display: none;
             position: absolute;
             top: -6px;
-            right: -6px;
+            left: -6px;   /* left side - the rail hugs the screen's right edge */
             min-width: 15px;
             height: 15px;
             padding: 0 4px;
@@ -559,6 +559,15 @@
             font-size: 17px;
             line-height: 1.8;
         }
+        #taskEditText {
+            min-height: 120px;
+            max-height: 40vh;
+            resize: vertical;
+            font-family: var(--serif);
+            font-style: italic;
+            font-size: 16px;
+            line-height: 1.7;
+        }
 
         /* ================ TOAST ================ */
         /* Fully invisible when hidden - no sliver may peek at the top. */
@@ -777,7 +786,7 @@
     <div id="taskOverlay" class="frc-overlay">
         <div class="frc-overlay-panel">
             <div class="overlay-meta"><span id="taskEditMeta">TASK</span></div>
-            <input id="taskEditText" class="frc-input" type="text">
+            <textarea id="taskEditText" class="frc-input"></textarea>
             <input id="taskEditDue" class="frc-input" type="date" aria-label="Due date (optional)">
             <select id="taskEditTag" class="frc-select" aria-label="Tag (optional)"></select>
             <div class="frc-row2">
@@ -806,7 +815,7 @@
     // ============================================
     // App version. Bumped automatically by finish.bat (via bump-version.ps1).
     // Format must stay as MAJOR.MINOR.PATCH so the bump regex matches.
-    const APP_VERSION = '3.0.9';
+    const APP_VERSION = '3.0.10';
 
     const DATA_OWNER       = 'santibraby';
     const DATA_REPO        = 'creative-notebook-data';
@@ -823,7 +832,8 @@
     const NEW_BUCKET = '__new';
     const DEFAULT_TASK_TAGS = ['urgent', 'long-term'];
     const NEW_TAG = '__newtag';
-    const COMPLETED = '__completed';
+    const TAG_COMPLETED = 'completed';   // built-in, mirrors done; not stored in config
+    const TAG_DEFAULT = 'long-term';
 
     const dataPath = (year)  => `data-${year}.json`;
     const dataUrl  = (path)  => `https://api.github.com/repos/${DATA_OWNER}/${DATA_REPO}/contents/${path}`;
@@ -947,11 +957,18 @@
 
     function taskTags() {
         const cfg = jsonCache[CONFIG_PATH];
-        if (cfg && Array.isArray(cfg.task_tags) && cfg.task_tags.length) return cfg.task_tags;
-        return DEFAULT_TASK_TAGS;
+        const list = (cfg && Array.isArray(cfg.task_tags) && cfg.task_tags.length) ? cfg.task_tags : DEFAULT_TASK_TAGS;
+        return list.filter(t => t.toLowerCase() !== TAG_COMPLETED);
     }
 
-    function tagDisplay(tag) { return String(tag).replace(/-/g, ' '); }
+    function tagDisplay(tag) { return '/' + String(tag).replace(/-/g, ' '); }
+
+    // The ONE effective tag of a task: completed if done, else its tag,
+    // else the default (long-term). Every task has exactly one.
+    function normTag(t) {
+        if (t.done) return TAG_COMPLETED;
+        return t.tag || TAG_DEFAULT;
+    }
 
     function overlayOpen() {
         return document.querySelector('.frc-overlay.is-open') !== null;
@@ -1226,16 +1243,13 @@
         build($('noteEditCat'), true);
     }
 
-    // Fill both task-tag <select>s from config.
+    // Fill both task-tag <select>s from config + the built-in completed.
+    // No "no tag" option - long-term is the default state.
     function renderTagSelects() {
-        const tags = taskTags();
+        const tags = [...taskTags(), TAG_COMPLETED];
         const build = (sel, current) => {
             if (!sel) return;
             sel.innerHTML = '';
-            const none = document.createElement('option');
-            none.value = '';
-            none.textContent = '/ no tag';
-            sel.appendChild(none);
             tags.forEach(t => {
                 const o = document.createElement('option');
                 o.value = t;
@@ -1246,17 +1260,23 @@
             n.value = NEW_TAG;
             n.textContent = '+ new tag...';
             sel.appendChild(n);
-            if (current !== undefined) sel.value = current;
+            sel.value = current !== undefined && current !== null ? current : TAG_DEFAULT;
+            if (!sel.value) sel.value = TAG_DEFAULT;
         };
         const prevNew = $('newTaskTag').value;
-        build($('newTaskTag'), prevNew && prevNew !== NEW_TAG ? prevNew : '');
-        build($('taskEditTag'));
+        build($('newTaskTag'), prevNew && prevNew !== NEW_TAG ? prevNew : TAG_DEFAULT);
+        build($('taskEditTag'), TAG_DEFAULT);
     }
 
     // sel may be null (invoked from the "+" chip rather than a <select>).
     async function handleNewTag(sel, fallbackValue) {
         const name = (prompt('New tag name:') || '').trim();
-        if (!name) { if (sel) sel.value = fallbackValue; return; }
+        if (!name) { if (sel) sel.value = fallbackValue || TAG_DEFAULT; return; }
+        if (['all', TAG_COMPLETED].includes(name.toLowerCase())) {
+            showToast(`"${name}" is reserved`, true);
+            if (sel) sel.value = fallbackValue || TAG_DEFAULT;
+            return;
+        }
         const existing = taskTags().find(t => t.toLowerCase() === name.toLowerCase());
         if (existing) { renderTagSelects(); if (sel) sel.value = existing; return; }
         try {
@@ -1512,12 +1532,14 @@
     }
 
     // ---------- TASKS ----------
-    // Tags: 'urgent' | 'long-term' are stored on the task; "completed" is
-    // derived from done. Sort: urgent first, untagged middle, long-term
-    // last; due dates order within each group; done sinks to the bottom.
+    // One exclusive tag per task (normTag): urgent / long-term (default) /
+    // custom / completed. Checking a task moves it to completed and back.
+    // Sort: urgent first, custom middle, long-term last; due dates order
+    // within each group; completed sinks to the bottom, newest first.
     function tagRank(t) {
-        if (t.tag === 'urgent') return 0;
-        if (t.tag === 'long-term') return 2;
+        const tag = normTag(t);
+        if (tag === 'urgent') return 0;
+        if (tag === TAG_DEFAULT) return 2;
         return 1;
     }
 
@@ -1534,10 +1556,10 @@
     }
 
     function taskTagInfo(t) {
-        if (t.done) return { label: 'completed', cls: 'tag-flag--done' };
-        if (t.tag === 'urgent') return { label: 'urgent', cls: 'tag-flag--urgent' };
-        if (t.tag) return { label: tagDisplay(t.tag), cls: 'tag-flag--other' };
-        return null;
+        const tag = normTag(t);
+        if (tag === TAG_COMPLETED) return { label: tagDisplay(TAG_COMPLETED), cls: 'tag-flag--done' };
+        if (tag === 'urgent') return { label: tagDisplay('urgent'), cls: 'tag-flag--urgent' };
+        return { label: tagDisplay(tag), cls: 'tag-flag--other' };
     }
 
     function renderTagChips() {
@@ -1555,7 +1577,7 @@
 
         host.appendChild(mk('All', 'all'));
         taskTags().forEach(t => host.appendChild(mk(tagDisplay(t), t)));
-        host.appendChild(mk('completed', COMPLETED));
+        host.appendChild(mk(tagDisplay(TAG_COMPLETED), TAG_COMPLETED));
 
         const plus = document.createElement('button');
         plus.className = 'chip chip--new';
@@ -1573,8 +1595,8 @@
         const host = $('taskList');
         host.innerHTML = '';
         let tasks = (tasksDoc().tasks || []).slice().sort(taskSort);
-        if (taskFilter === COMPLETED) tasks = tasks.filter(t => t.done);
-        else if (taskFilter !== 'all') tasks = tasks.filter(t => t.tag === taskFilter);
+        if (taskFilter === 'all') tasks = tasks.filter(t => !t.done);   // All = still open
+        else tasks = tasks.filter(t => normTag(t) === taskFilter);
         const today = todayLocalStr();
 
         if (!tasks.length) {
@@ -1582,7 +1604,7 @@
             empty.className = 'sheet-empty';
             const p = document.createElement('p');
             p.className = 'frc-note';
-            p.textContent = taskFilter === 'all' ? 'no tasks yet' : 'nothing here';
+            p.textContent = taskFilter === 'all' ? 'nothing open' : 'nothing here';
             empty.appendChild(p);
             host.appendChild(empty);
             return;
@@ -1653,6 +1675,8 @@
         badge.classList.toggle('on', count > 0);
     }
 
+    // Checking moves the task to the completed tag (remembering where it
+    // came from); unchecking restores its previous tag (default long-term).
     async function toggleTask(id) {
         try {
             await mutateJsonFile(TASKS_PATH, (doc) => {
@@ -1660,7 +1684,15 @@
                 const t = doc.tasks.find(x => x.id === id);
                 if (!t) return null;
                 t.done = !t.done;
-                if (t.done) t.done_at = new Date().toISOString(); else delete t.done_at;
+                if (t.done) {
+                    t.done_at = new Date().toISOString();
+                    t.prev_tag = (t.tag && t.tag !== TAG_COMPLETED) ? t.tag : TAG_DEFAULT;
+                    t.tag = TAG_COMPLETED;
+                } else {
+                    delete t.done_at;
+                    t.tag = (t.prev_tag && t.prev_tag !== TAG_COMPLETED) ? t.prev_tag : TAG_DEFAULT;
+                    delete t.prev_tag;
+                }
                 return doc;
             }, `toggle task ${id}`, { tasks: [] });
             renderTasks();
@@ -1675,14 +1707,14 @@
         if (isRecording) await stopRecording(); // fold a pending dictation in first
         const text = $('newTaskText').value.trim();
         const due = $('newTaskDue').value || null;
-        const tag = $('newTaskTag').value || null;
+        const tag = $('newTaskTag').value || TAG_DEFAULT;
         if (!text) { showToast('task is empty', true); $('newTaskText').focus(); return; }
         if (tag === NEW_TAG) { showToast('pick a tag first', true); return; }
         const btn = $('newTaskAdd');
         btn.disabled = true;
         try {
-            const task = { id: uuid(), text, due, done: false, created_at: new Date().toISOString() };
-            if (tag) task.tag = tag;
+            const task = { id: uuid(), text, due, done: false, created_at: new Date().toISOString(), tag };
+            if (tag === TAG_COMPLETED) { task.done = true; task.done_at = task.created_at; task.prev_tag = TAG_DEFAULT; }
             await mutateJsonFile(TASKS_PATH, (doc) => {
                 if (!Array.isArray(doc.tasks)) doc.tasks = [];
                 if (doc.tasks.some(x => x.id === task.id)) return null;
@@ -1691,7 +1723,7 @@
             }, `add task: ${text.slice(0, 48)}`, { tasks: [] });
             $('newTaskText').value = '';
             $('newTaskDue').value = '';
-            $('newTaskTag').value = '';
+            $('newTaskTag').value = TAG_DEFAULT;
             toggleAddTaskForm(false);
             renderTasks();
             renderBadge();
@@ -1716,10 +1748,10 @@
         if (!t) return;
         editingTaskId = id;
         const added = t.created_at ? ` · added ${fmtNoteDate(t.created_at)}` : '';
-        $('taskEditMeta').textContent = (t.done ? 'task · completed' : 'task') + added;
+        $('taskEditMeta').textContent = 'task' + added;
         $('taskEditText').value = t.text || '';
         $('taskEditDue').value = t.due || '';
-        $('taskEditTag').value = t.tag || '';
+        $('taskEditTag').value = normTag(t);
         $('taskOverlay').classList.add('is-open');
     }
 
@@ -1733,7 +1765,7 @@
         const id = editingTaskId;
         const text = $('taskEditText').value.trim();
         const due = $('taskEditDue').value || null;
-        const tag = $('taskEditTag').value || null;
+        const tag = $('taskEditTag').value || TAG_DEFAULT;
         if (!text) { showToast('task is empty', true); return; }
         if (tag === NEW_TAG) { showToast('pick a tag first', true); return; }
         try {
@@ -1741,10 +1773,20 @@
                 if (!Array.isArray(doc.tasks)) doc.tasks = [];
                 const t = doc.tasks.find(x => x.id === id);
                 if (!t) return null;
-                if (t.text === text && (t.due || null) === due && (t.tag || null) === tag) return null;
+                if (t.text === text && (t.due || null) === due && normTag(t) === tag) return null;
                 t.text = text;
                 if (due) t.due = due; else delete t.due;
-                if (tag) t.tag = tag; else delete t.tag;
+                // Tag and done stay one state: picking completed checks the
+                // task; picking anything else unchecks it.
+                if (tag === TAG_COMPLETED && !t.done) {
+                    t.done = true;
+                    t.done_at = new Date().toISOString();
+                    t.prev_tag = (t.tag && t.tag !== TAG_COMPLETED) ? t.tag : TAG_DEFAULT;
+                    t.tag = TAG_COMPLETED;
+                } else if (tag !== TAG_COMPLETED) {
+                    if (t.done) { t.done = false; delete t.done_at; delete t.prev_tag; }
+                    t.tag = tag;
+                }
                 return doc;
             }, `edit task ${id}`, { tasks: [] });
             closeTaskEditor();
